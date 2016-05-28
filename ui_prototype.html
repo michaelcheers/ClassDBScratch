@@ -1,24 +1,126 @@
 <html>
 <head>
-    <title></title>
-    <script src="engine.js"></script>
-	<style>
+<title></title>
+<script src="engine.js"></script>
+<script>
+var selectedTable = undefined;
+
+function onclick_tableId(cell)
+{
+    if (selectedTable != undefined)
+    {
+        // restore default settings
+        selectedTable.className = "sctable";
+        selectedTable.draggable = false;
+        var headerElement = selectedTable.firstChild.firstChild;
+        while(headerElement !== null)
+        {
+            if (headerElement.nodeName === "TD")
+            {
+                headerElement.draggable = true;
+            }
+            headerElement = headerElement.nextSibling;
+        }
+    }
+    selectedTable = cell.parentNode.parentNode;
+    selectedTable.className = "sctable_moving";
+    selectedTable.draggable = true;
+
+    var headerElement = selectedTable.firstChild.firstChild;
+    while (headerElement !== null)
+    {
+        if (headerElement.nodeName === "TD")
+        {
+            headerElement.draggable = false;
+        }
+        headerElement = headerElement.nextSibling;
+    }
+}
+
+document.addEventListener("dragover", function (event)
+{
+    event.preventDefault();
+});
+
+</script>
+<style>
+    .tableId{
+        background-color:orange;
+        border:outset;
+        border-radius:6px;
+        padding-top:1px;
+        padding-bottom:1px;
+        padding-left:4px;
+        padding-right:4px;
+        cursor:pointer;
+    }
 	.tableHead{
-		backgroundColor:0x888888
+		background-color:#DDDDDD;
+        border-bottom:solid;
+        border-right:solid;
+        border-width:1px;
+        cursor:pointer;
 	}
-	</style>
+	.tableLhs{
+		background-color:#DDDDDD;
+        border-bottom:solid;
+        border-right:solid;
+        border-width:1px;
+        cursor:pointer;
+        text-align:right;
+	}
+	.tableCell{
+        border-bottom:solid;
+        border-right:solid;
+        border-width:1px;
+        border-color:#AAAAAA;
+	}
+    .sctable{
+        position:absolute;
+    }
+    .sctable_moving{
+        position:absolute;
+        border:dotted;
+    }
+</style>
 </head>
 <body>
-<table>
-<tr>
-<td></td><td class="tableHead">Name</td><td class="tableHead">Age</td>
-</tr>
-<tr>
-<td>&#8226;</td><td>Sylvia</td><td>35</td>
-</tr>
-<tr>
-<td>&#8226;</td><td>Ben</td><td>37</td>
-</tr>
+
+<table class="sctable">
+    <tr>
+        <td class="tableId" draggable="true" onclick="onclick_tableId(this)">Users</td>
+        <td class="tableHead">Name</td>
+        <td class="tableHead">Age</td>
+    </tr>
+    <tr>
+        <td class="tableLhs">1</td>
+        <td class="tableCell">Sylvia</td>
+        <td class="tableCell">35</td>
+    </tr>
+    <tr>
+        <td class="tableLhs">2</td>
+        <td class="tableCell">Laurie</td>
+        <td class="tableCell">36</td>
+    </tr>
 </table>
+
+<table class="sctable" style="left:200px;">
+    <tr>
+        <td class="tableId" draggable="true" onclick="onclick_tableId(this)">Products &#8226;</td>
+        <td class="tableHead">Name</td>
+        <td class="tableHead">Price</td>
+    </tr>
+    <tr>
+        <td class="tableLhs">1</td>
+        <td class="tableCell">Hairbrush</td>
+        <td class="tableCell">$5.00</td>
+    </tr>
+    <tr>
+        <td class="tableLhs">2</td>
+        <td class="tableCell">Shampoo</td>
+        <td class="tableCell">$1.40</td>
+    </tr>
+</table>
+
 </body>
 </html>
