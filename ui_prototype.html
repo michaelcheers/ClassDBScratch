@@ -10,37 +10,43 @@ var testDoc = {
 	args: [
 	{
 		type:"native",
-		text:[""," + "],
+		text:"alert ",
+		"native":alert,
 		args: [
-			{
-				type:"native",
-				text:[""," + "],
-				args: [
-					{
-						type:"literal",
-						literal:77
-					},
-					{
-						type:"literal",
-						literal:88
-					}
-				]
-			},
-			{
-				type:"native",
-				text:[""," + "],
-				args: [
-					{
-						type:"literal",
-						literal:55
-					},
-					{
-						type:"literal",
-						literal:66
-					}
-				]
-			}
-		]
+		{
+			type:"native",
+			text:[""," + "],
+			args: [
+				{
+					type:"native",
+					text:[""," + "],
+					args: [
+						{
+							type:"literal",
+							literal:77
+						},
+						{
+							type:"literal",
+							literal:88
+						}
+					]
+				},
+				{
+					type:"native",
+					text:[""," + "],
+					args: [
+						{
+							type:"literal",
+							literal:55
+						},
+						{
+							type:"literal",
+							literal:66
+						}
+					]
+				}
+			]
+		}]
 	}
 ]};
 
@@ -112,12 +118,17 @@ document.addEventListener("drop", function (event)
 
 function onload_init()
 {
-	removeAllChildren(document.body);
+	displayNode(testDoc);
+}
+
+function displayNode(node)
+{
+	var scratchArea = document.getElementById("scratch_area");
 	
-	addParents(testDoc);
+	addParents(node);
 	
-	var newElement = representScratchNode(testDoc);
-	document.body.appendChild(newElement);
+	removeAllChildren(scratchArea);
+	scratchArea.appendChild(representScratchNode(node));
 }
 
 function removeAllChildren(element)
@@ -193,36 +204,47 @@ function drop(ev)
 	{
 		var draggingNode = g_draggingElement.scratchNode;
 		var targetNode = ev.target.scratchNode;
-		
-		if(targetNode.parent !== undefined)
+
+		if(targetNode === undefined)
 		{
-			if(!isAncestorOfNode(draggingNode, targetNode))
+			// dragged a node into nowhere, add it to the root doc
+			if(draggingNode.parent !== testDoc)
 			{
-				var targetArgIdx = getParentArgIndex(targetNode);
-				var draggedArgIdx = getParentArgIndex(draggingNode);
-				
-				var replacedNode = targetNode.parent.args[targetArgIdx];
-				targetNode.parent.args[targetArgIdx] = draggingNode;
-			
-				if(draggingNode.parent === testDoc)
-				{
-					draggingNode.parent.args.splice(draggedArgIdx, 1);
-				}
-				else
-				{
-					draggingNode.parent.args[draggedArgIdx] = createLiteralNode(0);
-				}
-				
-				if(replacedNode.type !== "literal")
-				{
-					testDoc.args.push( replacedNode );
-				}
-				
+				dragAwayNode(draggingNode);
+				testDoc.args.push(draggingNode);
 				onload_init(); // redisplay
 			}
 		}
+		else if(targetNode.parent !== undefined && !isAncestorOfNode(draggingNode, targetNode))
+		{
+			dragAwayNode(draggingNode);
+
+			var targetArgIdx = getParentArgIndex(targetNode);
+			
+			var replacedNode = targetNode.parent.args[targetArgIdx];
+			targetNode.parent.args[targetArgIdx] = draggingNode;
+					
+			if(replacedNode.type !== "literal")
+			{
+				testDoc.args.push( replacedNode );
+			}
+			onload_init(); // redisplay
+		}
 		
 		g_draggingElement = undefined;
+	}
+}
+
+function dragAwayNode(node)
+{
+	var draggedArgIdx = getParentArgIndex(node);
+	if(node.parent === testDoc)
+	{
+		node.parent.args.splice(draggedArgIdx, 1);
+	}
+	else
+	{
+		node.parent.args[draggedArgIdx] = createLiteralNode(0);
 	}
 }
 
@@ -265,6 +287,10 @@ function getParentArgIndex(targetNode)
 function allowDrop(ev)
 {
 	ev.preventDefault();
+}
+
+function onclick_Run()
+{
 }
 
 </script>
@@ -336,8 +362,8 @@ function allowDrop(ev)
     .numberField{
         background-color:white;
         border:inset;
-        border-thickness:1px;
-        border-radius:6px;
+        border-width:1px;
+        border-radius:2px;
         padding-top:1px;
         padding-bottom:1px;
         padding-left:4px;
@@ -347,6 +373,8 @@ function allowDrop(ev)
 </style>
 </head>
 <body onload="onload_init()">
+<div id="scratch_area"></div>
+<button onclick="onclick_Run()">Run</button>
 
 <!--
 <table class="sctable">
