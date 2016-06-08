@@ -76,7 +76,7 @@ function compile(value) {
     var result = {events:[]};
     var globalRegisterLength = value.globalVariables.length;
     result.globalVariables = globalRegisterLength;
-    for (var item of value.program)
+    for (var item of value.events)
     {
         var eventName = item.name;
         var eventData = item.data;
@@ -110,7 +110,7 @@ function arrayInit (size, value) {
 function compileBlocks(value, program) {
     var result = {};
     var resultArray = [];
-    var scope = {};
+    var scope = {declaredVariables:[]};
     for (var item of value) {
         resultArray.push(compileBlock(item, program, scope));
     }
@@ -155,7 +155,7 @@ function run(value) {
                     run(item);
             };
         default:
-            System.alert("Unknown node type: " + value.type);
+            throw new Error("Unknown node type: " + value.type);
             return 0;
             break;
     }
