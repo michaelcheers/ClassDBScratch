@@ -187,7 +187,14 @@ function representScratchNode(scratchNode)
 			newNode.size=3;
 			ondrop=function(event){ drop(event); }
 			ondragover=function(event){ allowDrop(event); }
-			newNode.onchange = function(){ this.scratchNode.literal = this.value; }
+			newNode.onchange = function()
+			{
+				var valueAsNumber = parseInt(this.value, 10);
+				if( this.value === ""+valueAsNumber )
+					this.scratchNode.literal = valueAsNumber;
+				else
+					this.scratchNode.literal = this.value;
+			}
 			break;
 	}
 	
