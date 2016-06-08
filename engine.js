@@ -12,7 +12,8 @@ ClassDBScratch.Events =
         keypress: 2,
         keyrelease: 3,
         click: 4,
-        receivemessage: 5
+        receivemessage: 5,
+        debugOnly: 6
     };
 
 function checkTypes(values, expectedTypes) {
@@ -35,6 +36,15 @@ function $if(condition, consequent, alternate) {
 function add(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a + b;
+}
+
+var localRegisters = [];
+var globalRegisters = [];
+
+function setRegister(local, number, setTo) {
+    checkTypes([local, number], ['boolean', 'number']);
+    var cRegister = local ? localRegisters : globalRegisters;
+    cRegister[number] = setTo;
 }
 
 function eq(a, b) {
@@ -63,10 +73,70 @@ function geq(a, b) {
 }
 
 function compile(value) {
-    for (var item of value)
+    var result = {events:[]};
+    var globalRegisterLength = value.globalVariables.length;
+    result.globalVariables = globalRegisterLength;
+    for (var item of value.program)
     {
         var eventName = item.name;
-        var eventBody = item.body;
+        var eventData = item.data;
+        var eventBody = compileBlocks(item.body, value);
+        var eventNumber = ClassDBScratch.Events[eventName];
+        result.events.push(
+            {
+                id: eventNumber,
+                data: eventData,
+                body: eventBody,
+            });
+    }
+    return result;
+}
+
+function isFunction (value) {
+    return typeof (value) === "function";
+}
+
+function arrayInit (size, value) {
+    var arr = new Array(size),
+        isFn = isFunction(value);
+
+    for (var i = 0; i < size; i++) {
+        arr[i] = isFn ? value() : value;
+    }
+
+    return arr;
+}
+
+function compileBlocks(value, program) {
+    var result = {};
+    var resultArray = [];
+    var scope = {};
+    for (var item of value) {
+        resultArray.push(compileBlock(item, program, scope));
+    }
+    result.body = resultArray;
+    result.variables = scope.declaredVariables.length;
+    return result;
+}
+
+function compileBlock(value, program, scope) {
+    var $t;
+    switch (value.block)
+    {
+        case 'vardecl':
+            return {
+                "type": "native",
+                "native": setRegister,
+                "args":[true, scope.declaredVariables.push(value.name) - 1, ($t = value.setTo, $t != null ? $t : null)]
+            };
+        case 'setvar':
+            return {
+                "type": "native",
+                "native": setRegister,
+                "args":[$t = value.local, ($t ? scope.declaredVariables : program.globalVariables[value.name])[value.name], value.setTo]
+            };
+        default:
+            return value;
     }
 }
 
@@ -85,8 +155,25 @@ function run(value) {
                     run(item);
             };
         default:
-            System.alert("Unknown node type " + value.type);
+            System.alert("Unknown node type: " + value.type);
             return 0;
             break;
+    }
+}
+
+function runBody(value) {
+    localRegisters = arrayInit(value.variables, null);
+    for (var item of value.body) {
+        run(item);
+    }
+}
+
+function runProgram(value) {
+    globalRegisters = arrayInit(value.globalVariables, null);
+    var events = value.events;
+    for (var item of events) {
+        if (item.id !== ClassDBScratch.Events.greenflag)
+            throw new Error("Not Supported");
+        runBody(item.body);
     }
 }
