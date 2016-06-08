@@ -3,6 +3,7 @@
 <title></title>
 <script src="engine.js"></script>
 <script>
+/// <reference path = "engine.js" />
 var selectedTable = undefined;
 
 var testDoc = {
@@ -16,12 +17,12 @@ var testDoc = {
 		{
 			type:"native",
 			text:[""," + "],
-			"native":function(a,b){return a+b;},
+			"native":add,
 			args: [
 				{
 					type:"native",
 					text:[""," + "],
-					"native":function(a,b){return a+b;},
+					"native":add,
 					args: [
 						{
 							type:"literal",
@@ -36,7 +37,7 @@ var testDoc = {
 				{
 					type:"native",
 					text:[""," + "],
-					"native":function(a,b){return a+b;},
+					"native":add,
 					args: [
 						{
 							type:"literal",
