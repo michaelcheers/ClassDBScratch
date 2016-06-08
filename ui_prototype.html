@@ -16,10 +16,12 @@ var testDoc = {
 		{
 			type:"native",
 			text:[""," + "],
+			"native":function(a,b){return a+b;},
 			args: [
 				{
 					type:"native",
 					text:[""," + "],
+					"native":function(a,b){return a+b;},
 					args: [
 						{
 							type:"literal",
@@ -34,6 +36,7 @@ var testDoc = {
 				{
 					type:"native",
 					text:[""," + "],
+					"native":function(a,b){return a+b;},
 					args: [
 						{
 							type:"literal",
@@ -118,10 +121,10 @@ document.addEventListener("drop", function (event)
 
 function onload_init()
 {
-	displayNode(testDoc);
+	displayWholePage(testDoc);
 }
 
-function displayNode(node)
+function displayWholePage(node)
 {
 	var scratchArea = document.getElementById("scratch_area");
 	
@@ -184,6 +187,7 @@ function representScratchNode(scratchNode)
 			newNode.size=3;
 			ondrop=function(event){ drop(event); }
 			ondragover=function(event){ allowDrop(event); }
+			newNode.onchange = function(){ this.scratchNode.literal = this.value; }
 			break;
 	}
 	
@@ -212,7 +216,7 @@ function drop(ev)
 			{
 				dragAwayNode(draggingNode);
 				testDoc.args.push(draggingNode);
-				onload_init(); // redisplay
+				displayWholePage(testDoc); // redisplay
 			}
 		}
 		else if(targetNode.parent !== undefined && !isAncestorOfNode(draggingNode, targetNode))
@@ -228,7 +232,7 @@ function drop(ev)
 			{
 				testDoc.args.push( replacedNode );
 			}
-			onload_init(); // redisplay
+			displayWholePage(testDoc); // redisplay
 		}
 		
 		g_draggingElement = undefined;
@@ -291,6 +295,17 @@ function allowDrop(ev)
 
 function onclick_Run()
 {
+	var compiled = compile(
+		{
+			globalVariables:[],
+			events:[{
+				name:'greenflag',
+				data:[],
+				body:testDoc.args
+			}]
+		}
+	);
+	runProgram(compiled);
 }
 
 </script>
