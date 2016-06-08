@@ -1,7 +1,7 @@
 // JavaScript source code
 /// <reference path = "engine.js" />
 
-function setRegister(value) {
+function setUnitReg(value) {
     registers.push(value);
 }
 
@@ -50,7 +50,7 @@ var unitTests = [
                 blocks: [
                     {
                         type: "native",
-                        "native": setRegister,
+                        "native": setUnitReg,
                         args: [
                             {
                                 type: "literal",
@@ -65,7 +65,7 @@ var unitTests = [
                 blocks: [
                     {
                         type: "native",
-                        "native": setRegister,
+                        "native": setUnitReg,
                         args: [
                             {
                                 type: "literal",
@@ -75,7 +75,7 @@ var unitTests = [
                     },
                     {
                         type: "native",
-                        "native": setRegister,
+                        "native": setUnitReg,
                         args: [
                             {
                                 type: "literal",
@@ -94,7 +94,7 @@ var unitTests = [
         var code =
             {
                 type: "native",
-                native: setRegister,
+                native: setUnitReg,
                 args: [
                 {
                     type: "literal",
