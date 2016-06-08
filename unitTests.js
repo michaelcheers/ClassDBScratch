@@ -103,6 +103,57 @@ var unitTests = [
             };
         run(code);
         assertArrayEqual(["Hello World"], "Hello World not working.");
+    },
+    function () {
+        var code =
+            {
+                globalVariables: [],
+                events: [{
+                    name: 'greenflag',
+                    data: []
+                , body: [{ "native": setUnitReg, args: [{ type: 'literal', literal: "hello world" }], type: "native" }]
+                }
+                ]
+            };
+        runProgram(compile(code));
+        assertArrayEqual(["hello world"], "hello world not working.");
+    },
+    function () {
+        var code =
+            {
+                globalVariables: [],
+                events: [
+                    {
+                        name: 'greenflag',
+                        data: [],
+                        body:
+                        [
+                            {
+                                name: "v",
+                                setTo:
+                                    {
+                                        literal: "hello world",
+                                        type: "literal"
+                                    },
+                                type: "vardecl"
+                            },
+                            {
+                                type: "native",
+                                native: setUnitReg,
+                                args: [
+                                    {
+                                        type: "getvar",
+                                        name: "v",
+                                        local:true
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            };
+        runProgram(compile(code));
+        assertArrayEqual(['hello world']);
     }
 ];
 for (let item of unitTests)

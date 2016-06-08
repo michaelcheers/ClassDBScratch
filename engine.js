@@ -47,6 +47,11 @@ function setRegister(local, number, setTo) {
     cRegister[number] = setTo;
 }
 
+function getRegister(local, number) {
+    checkTypes([local, number], ['boolean', 'number']);
+    return (local ? localRegisters : globalRegisters)[number];
+}
+
 function eq(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a === b;
@@ -119,25 +124,110 @@ function compileBlocks(value, program) {
     return result;
 }
 
+function literalise(v) {
+    return {
+        literal: v,
+        type:'literal'
+    }
+}
+
 function compileBlock(value, program, scope) {
     var $t;
-    switch (value.block)
+    switch (value.type)
     {
         case 'vardecl':
             return {
                 "type": "native",
                 "native": setRegister,
-                "args":[true, scope.declaredVariables.push(value.name) - 1, ($t = value.setTo, $t != null ? $t : null)]
+                "args": [true, scope.declaredVariables.push(value.name) - 1].map(literalise).concat([($t = value.setTo, $t != null ? $t : null)])
+            };
+        case 'getvar':
+            return {
+                type: "native",
+                "native": getRegister,
+                args: [($t = value.local), ($t ? scope.declaredVariables : program.globalVariables).indexOf(value.name)].map(literalise)
             };
         case 'setvar':
             return {
                 "type": "native",
                 "native": setRegister,
-                "args":[$t = value.local, ($t ? scope.declaredVariables : program.globalVariables[value.name])[value.name], value.setTo]
+                "args":[$t = value.local, ($t ? scope.declaredVariables : program.globalVariables)[value.name], value.setTo].map(literalise)
             };
+        case 'native':
+            var valueCopy = merge({}, value);
+            valueCopy.args = valueCopy.args.map(function (v) { return compileBlock(v, program, scope); });
+            return valueCopy;
         default:
             return value;
     }
+}
+
+function isArray (obj) {
+    return Object.prototype.toString.call(obj) in {
+        "[object Array]": 1,
+        "[object Uint8Array]": 1,
+        "[object Int8Array]": 1,
+        "[object Int16Array]": 1,
+        "[object Uint16Array]": 1,
+        "[object Int32Array]": 1,
+        "[object Uint32Array]": 1,
+        "[object Float32Array]": 1,
+        "[object Float64Array]": 1
+    };
+}
+
+function merge (to, from, elemFactory) {
+    // Maps instance of plain JS value or Object into Bridge object. 
+    // Used for deserialization. Proper deserialization requires reflection that is currently not supported in Bridge. 
+    // It currently is only capable to deserialize:
+    // -instance of single class or primitive
+    // -array of primitives 
+    // -array of single class           
+
+    var key,
+        i,
+        value,
+        toValue,
+        fn;
+
+    if (isArray(from) && isFunction(to.add || to.push)) {
+        fn = isArray(to) ? to.push : to.add;
+
+        for (i = 0; i < from.length; i++) {
+            var item = from[i];
+
+            if (!isArray(item)) {
+                item = [typeof elemFactory === 'undefined' ? item : merge(elemFactory(), item)];
+            }
+
+            fn.apply(to, item);
+        }
+    } else {
+        for (key in from) {
+            value = from[key];
+
+            if (typeof to[key] === "function") {
+                if (key.match(/^\s*get[A-Z]/)) {
+                    Bridge.merge(to[key](), value);
+                } else {
+                    to[key](value);
+                }
+            } else {
+                var setter = "set" + key.charAt(0).toUpperCase() + key.slice(1);
+
+                if (typeof to[setter] === "function" && typeof value !== "function") {
+                    to[setter](value);
+                } else if (value && value.constructor === Object && to[key]) {
+                    toValue = to[key];
+                    Bridge.merge(toValue, value);
+                } else {
+                    to[key] = value;
+                }
+            }
+        }
+    }
+
+    return to;
 }
 
 function run(value) {
