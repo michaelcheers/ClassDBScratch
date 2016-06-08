@@ -5,6 +5,62 @@
 <script>
 var selectedTable = undefined;
 
+var testDoc = {
+	type:"document",
+	args: [
+	{
+		type:"native",
+		text:[""," + "],
+		args: [
+			{
+				type:"native",
+				text:[""," + "],
+				args: [
+					{
+						type:"literal",
+						literal:77
+					},
+					{
+						type:"literal",
+						literal:88
+					}
+				]
+			},
+			{
+				type:"native",
+				text:[""," + "],
+				args: [
+					{
+						type:"literal",
+						literal:55
+					},
+					{
+						type:"literal",
+						literal:66
+					}
+				]
+			}
+		]
+	}
+]};
+
+function addParents(tree)
+{
+	function addParentsRec(current, parent)
+	{
+		current.parent = parent;
+		if(current.args !== undefined)
+		{
+			for(var Idx = 0; Idx < current.args.length; ++Idx)
+			{
+				addParentsRec(current.args[Idx], current);
+			}
+		}
+	};
+	
+	addParentsRec(tree, undefined);
+}
+
 function onclick_tableId(cell)
 {
     if (selectedTable != undefined)
@@ -41,6 +97,175 @@ document.addEventListener("dragover", function (event)
 {
     event.preventDefault();
 });
+
+document.addEventListener("drop", function (event)
+{
+    event.preventDefault();
+/*    if (event.target.className == "droptarget")
+    {
+        document.getElementById("demo").style.color = "";
+        event.target.style.border = "";
+        var data = event.dataTransfer.getData("Text");
+        event.target.appendChild(document.getElementById(data));
+    }*/
+});
+
+function onload_init()
+{
+	removeAllChildren(document.body);
+	
+	addParents(testDoc);
+	
+	var newElement = representScratchNode(testDoc);
+	document.body.appendChild(newElement);
+}
+
+function removeAllChildren(element)
+{
+	while(element.firstChild !== null)
+	{
+		element.removeChild(element.firstChild);
+	}
+}
+
+function representScratchNode(scratchNode)
+{
+	var newNode;
+	switch(scratchNode.type)
+	{
+		case "document":
+			newNode = document.createElement("DIV");
+			for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+			{
+				var containerDiv = document.createElement("DIV");
+				containerDiv.appendChild( representScratchNode(scratchNode.args[Idx]) );
+				newNode.appendChild( containerDiv );
+			}
+			break;
+			
+		case "native":
+			newNode = document.createElement("DIV");
+			newNode.className="nativeNode";
+			newNode.draggable=true;
+			newNode.ondragstart=function(event){ drag(event); }
+			
+			var textList = scratchNode.text;
+
+			if(textList === undefined)
+				textList = [];
+			else if(typeof textList === "string")
+				textList = [textList];
+
+			for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+			{
+				if(textList[Idx] !== undefined)
+				{
+					newNode.appendChild( document.createTextNode(textList[Idx]) );
+				}
+				newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
+			}
+			break;
+		case "literal":
+			newNode = document.createElement("INPUT");
+			newNode.type = "text";
+			newNode.className="numberField";
+			newNode.value=scratchNode.literal
+			newNode.size=3;
+			ondrop=function(event){ drop(event); }
+			ondragover=function(event){ allowDrop(event); }
+			break;
+	}
+	
+	newNode.scratchNode = scratchNode;
+	return newNode;
+}
+
+var g_draggingElement;
+
+function drag(ev)
+{
+	g_draggingElement = ev.target;
+}
+
+function drop(ev)
+{
+	if(g_draggingElement !== undefined && g_draggingElement.scratchNode !== undefined)
+	{
+		var draggingNode = g_draggingElement.scratchNode;
+		var targetNode = ev.target.scratchNode;
+		
+		if(targetNode.parent !== undefined)
+		{
+			if(!isAncestorOfNode(draggingNode, targetNode))
+			{
+				var targetArgIdx = getParentArgIndex(targetNode);
+				var draggedArgIdx = getParentArgIndex(draggingNode);
+				
+				var replacedNode = targetNode.parent.args[targetArgIdx];
+				targetNode.parent.args[targetArgIdx] = draggingNode;
+			
+				if(draggingNode.parent === testDoc)
+				{
+					draggingNode.parent.args.splice(draggedArgIdx, 1);
+				}
+				else
+				{
+					draggingNode.parent.args[draggedArgIdx] = createLiteralNode(0);
+				}
+				
+				if(replacedNode.type !== "literal")
+				{
+					testDoc.args.push( replacedNode );
+				}
+				
+				onload_init(); // redisplay
+			}
+		}
+		
+		g_draggingElement = undefined;
+	}
+}
+
+function isAncestorOfNode(ancestor, node)
+{
+	do
+	{
+		if(ancestor === node)
+			return true;
+			
+		node = node.parent
+	}
+	while(node !== undefined);
+	
+	return false;
+}
+
+function createLiteralNode(value)
+{
+	return {
+		type:"literal",
+		literal:value
+	};
+}
+
+function getParentArgIndex(targetNode)
+{
+	var parentArgs = targetNode.parent.args;
+	for(var Idx = 0; Idx < parentArgs.length; ++Idx)
+	{
+		if( parentArgs[Idx] === targetNode )
+		{
+			return Idx;
+		}
+	}
+	
+	return undefined;
+}
+
+function allowDrop(ev)
+{
+	ev.preventDefault();
+}
 
 </script>
 <style>
@@ -82,10 +307,48 @@ document.addEventListener("dragover", function (event)
         position:absolute;
         border:dotted;
     }
+
+    .nativeNode{
+        border:outset;
+		border-color:#FFCC66;
+        background-color:#FFA500;
+        border-radius:6px;
+        padding-top:1px;
+        padding-bottom:1px;
+        padding-left:4px;
+        padding-right:4px;
+        cursor:pointer;
+		display:inline-block;
+    }
+    .valueNode{
+        border-style:outset;
+		border-color:#B060B0;
+        background-color:#800080;
+		color:white;
+        border-radius:6px;
+        padding-top:1px;
+        padding-bottom:1px;
+        padding-left:4px;
+        padding-right:4px;
+        cursor:pointer;
+		display:inline-block;
+    }
+    .numberField{
+        background-color:white;
+        border:inset;
+        border-thickness:1px;
+        border-radius:6px;
+        padding-top:1px;
+        padding-bottom:1px;
+        padding-left:4px;
+        padding-right:4px;
+		display:inline-block;
+    }
 </style>
 </head>
-<body>
+<body onload="onload_init()">
 
+<!--
 <table class="sctable">
     <tr>
         <td class="tableId" draggable="true" onclick="onclick_tableId(this)">Users</td>
@@ -121,6 +384,6 @@ document.addEventListener("dragover", function (event)
         <td class="tableCell">$1.40</td>
     </tr>
 </table>
-
+-->
 </body>
 </html>
