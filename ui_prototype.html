@@ -88,9 +88,11 @@ function onclick_tableId(cell)
             headerElement = headerElement.nextSibling;
         }
     }
-    selectedTable = cell.parentNode.parentNode;
-    selectedTable.className = "sctable_moving";
-    selectedTable.draggable = true;
+    selectedTable = merge(cell.parentNode.parentNode, 
+        {
+            className: "sctable_moving",
+            draggable: true
+        });
 
     var headerElement = selectedTable.firstChild.firstChild;
     while (headerElement !== null)
@@ -159,17 +161,15 @@ function representScratchNode(scratchNode)
 			break;
 			
 		case "native":
-			newNode = document.createElement("DIV");
-			newNode.className="nativeNode";
-			newNode.draggable=true;
-			newNode.ondragstart=function(event){ drag(event); }
+		    newNode = merge(document.createElement("DIV"),
+                {
+                    className: "nativeNode",
+                    draggable: true,
+                    ondragstart: drag
+                });
 			
 			var textList = scratchNode.text;
-
-			if(textList === undefined)
-				textList = [];
-			else if(typeof textList === "string")
-				textList = [textList];
+            var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
 
 			for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 			{
@@ -181,21 +181,21 @@ function representScratchNode(scratchNode)
 			}
 			break;
 		case "literal":
-			newNode = document.createElement("INPUT");
-			newNode.type = "text";
-			newNode.className="numberField";
-			newNode.value=scratchNode.literal
-			newNode.size=3;
-			ondrop=function(event){ drop(event); }
-			ondragover=function(event){ allowDrop(event); }
-			newNode.onchange = function()
-			{
-				var valueAsNumber = parseInt(this.value, 10);
-				if( this.value === ""+valueAsNumber )
-					this.scratchNode.literal = valueAsNumber;
-				else
-					this.scratchNode.literal = this.value;
-			}
+		    newNode = merge(document.createElement("INPUT"),
+		        {
+		            type: 'text',
+		            className: 'numberField',
+		            value: scratchNode.literal,
+		            size: 3,
+		            onchange: function () {
+		                {
+		                    var $t;
+		                    this.scratchNode.literal = (($t = parseInt(this.value)) ? $t : this.value);
+		                }
+		            }
+		        });
+			ondrop = drop;
+			ondragover = allowDrop;
 			break;
 	}
 	

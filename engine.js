@@ -38,6 +38,26 @@ function add(a, b) {
     return a + b;
 }
 
+function div(a, b) {
+    checkTypes([a, b], ['number', 'number']);
+    return a / b;
+}
+
+function mul(a, b) {
+    checkTypes([a, b], ['number', 'number']);
+    return a * b;
+}
+
+function sub(a, b) {
+    checkTypes([a, b], ['number', 'number']);
+    return a - b;
+}
+
+function concat(a, b) {
+    checkTypes([a, b], ['string', 'string']);
+    return a + b;
+}
+
 var localRegisters = [];
 var globalRegisters = [];
 
@@ -151,7 +171,7 @@ function compileBlock(value, program, scope) {
             return {
                 "type": "native",
                 "native": setRegister,
-                "args":[$t = value.local, ($t ? scope.declaredVariables : program.globalVariables)[value.name], value.setTo].map(literalise)
+                "args":[$t = value.local, ($t ? scope.declaredVariables : program.globalVariables).indexOf(value.name), value.setTo].map(literalise)
             };
         case 'native':
             var valueCopy = merge({}, value);

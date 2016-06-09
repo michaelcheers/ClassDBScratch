@@ -154,6 +154,39 @@ var unitTests = [
             };
         runProgram(compile(code));
         assertArrayEqual(['hello world']);
+    },
+    function () {
+        var code =
+            {
+                globalVariables: ['v'],
+                events: [
+                    {
+                        name: 'greenflag',
+                        data: [],
+                        body: [
+                            {
+                                type: 'setvar',
+                                local: false,
+                                name: 'v',
+                                setTo: 'hello world'
+                            },
+                            {
+                                type: 'native',
+                                native: setUnitReg,
+                                args: [
+                                    {
+                                        type: 'getvar',
+                                        name: 'v',
+                                        local: false
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            };
+        runProgram(compile(code));
+        assertArrayEqual(['hello world']);
     }
 ];
 for (let item of unitTests)
