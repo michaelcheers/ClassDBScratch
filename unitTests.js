@@ -28,66 +28,76 @@ function clearRegister() {
 var unitTests = [
     function () {
         var code = {
-            "type": "native",
-            "native": $if,
-            "args": [
-            {
-                type: "native",
-                "native": eq,
-                args: [
-                    {
-                        type: "literal",
-                        literal: 7
-                    },
-                    {
-                        type: "literal",
-                        literal: 8
-                    }
-                ]
-            },
-            {
-                type: "function",
-                blocks: [
-                    {
-                        type: "native",
-                        "native": setUnitReg,
-                        args: [
-                            {
-                                type: "literal",
-                                literal: "Hello World"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                type: "function",
-                blocks: [
-                    {
-                        type: "native",
-                        "native": setUnitReg,
-                        args: [
-                            {
-                                type: "literal",
-                                literal: "Hello World 2"
-                            }
-                        ]
-                    },
-                    {
-                        type: "native",
-                        "native": setUnitReg,
-                        args: [
-                            {
-                                type: "literal",
-                                literal: "Hello World 3"
-                            }
-                        ]
-                    }
-                ]
-            }
-            ]
+			globalVariables:[],
+			events:[
+			{
+				name: 'greenflag',
+				body:[
+				{
+					"type": "native",
+					"native": $if,
+					"args": [
+					{
+						type: "native",
+						"native": eq,
+						args: [
+							{
+								type: "literal",
+								literal: 7
+							},
+							{
+								type: "literal",
+								literal: 8
+							}
+						]
+					},
+					{
+						type: "function",
+						blocks: [
+							{
+								type: "native",
+								"native": setUnitReg,
+								args: [
+									{
+										type: "literal",
+										literal: "Hello World"
+									}
+								]
+							}
+						]
+					},
+					{
+						type: "function",
+						blocks: [
+							{
+								type: "native",
+								"native": setUnitReg,
+								args: [
+									{
+										type: "literal",
+										literal: "Hello World 2"
+									}
+								]
+							},
+							{
+								type: "native",
+								"native": setUnitReg,
+								args: [
+									{
+										type: "literal",
+										literal: "Hello World 3"
+									}
+								]
+							}
+						]
+					}
+					]
+				}
+				]
+			}
+			]
         };
-        run(code);
+        runProgram(compile(code));
         assertArrayEqual(["Hello World 2", "Hello World 3"], "If else not working.");
     },
     function () {

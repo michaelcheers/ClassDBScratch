@@ -111,7 +111,7 @@ function compile(value) {
             {
                 id: eventNumber,
                 data: eventData,
-                body: eventBody,
+                body: eventBody
             });
     }
     return result;
@@ -133,15 +133,14 @@ function arrayInit (size, value) {
 }
 
 function compileBlocks(value, program) {
-    var result = {};
     var resultArray = [];
     var scope = {declaredVariables:[]};
-    for (var item of value) {
+    for (var item of value)
         resultArray.push(compileBlock(item, program, scope));
-    }
-    result.body = resultArray;
-    result.variables = scope.declaredVariables.length;
-    return result;
+    return {
+    	body:resultArray,
+    	variables:scope.declaredVariables.length
+    };
 }
 
 function literalise(v) {
@@ -261,21 +260,16 @@ function run(value) {
             return value["native"].apply(null, tempArgs);
         case "function":
             return function () {
-                for (var item of value.blocks)
-                    run(item);
+                value.blocks.forEach(run);
             };
         default:
             throw new Error("Unknown node type: " + value.type);
-            return 0;
-            break;
     }
 }
 
 function runBody(value) {
     localRegisters = arrayInit(value.variables, null);
-    for (var item of value.body) {
-        run(item);
-    }
+    value.body.forEach(run);
 }
 
 function runProgram(value) {
