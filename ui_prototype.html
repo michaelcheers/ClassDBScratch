@@ -288,8 +288,7 @@ function placeDrop(ev)
 			// dragged a node into nowhere, add it to the root doc
 			if(draggingNode.parent !== testDoc)
 			{
-				if(draggingNode.parent !== undefined)
-					dragAwayNode(draggingNode);
+				dragAwayNode(draggingNode);
 				
 				testDoc.args.push(draggingNode);
 				var scratchArea = document.getElementById("scratch_area");
@@ -305,7 +304,7 @@ function placeDrop(ev)
 			var replacedNode = targetNode.parent.args[targetArgIdx];
 			targetNode.parent.args[targetArgIdx] = draggingNode;
 					
-			if(replacedNode.type !== "literal")
+			if(replacedNode !== undefined && replacedNode.type !== "literal")
 			{
 				testDoc.args.push( replacedNode );
 			}
@@ -319,6 +318,9 @@ function placeDrop(ev)
 
 function dragAwayNode(node)
 {
+	if(node.parent === undefined)
+		return;
+
 	var draggedArgIdx = getParentArgIndex(node);
 	if(node.parent === testDoc)
 	{
@@ -355,8 +357,8 @@ function createLiteralNode(value)
 function getParentArgIndex(targetNode)
 {
     if (!targetNode.parent) return undefined;
-	var $t;
-	return $t = targetNode.parent.args.indexOf(targetNode) === -1 ? undefined : $t;
+	var index = targetNode.parent.args.indexOf(targetNode);
+	return index === -1 ? undefined : index;
 }
 
 function allowDrop(ev)
