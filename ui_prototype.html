@@ -254,27 +254,20 @@ function getRoot(node)
 
 function cloneNode(node)
 {
+    checkTypes([node], ['object']);
 	var result = {};
 	for(var key in node)
 	{
-		if(key === "parent")
-			continue;
-
-		if(Array.isArray(node[key]))
-		{
-			var newArray = [];
-			var baseArray = node[key];
-			for(var Idx = 0; Idx < baseArray.length; ++Idx)
-			{
-				newArray[Idx] = cloneNode(baseArray[Idx]);
-			}
-			result[key] = newArray;
-		}
-		else
-		{
-			result[key] = node[key];
-		}
-	}
+	    if (key === "parent")
+	        continue;
+	    var value = node[key];
+	    result[key] = isArray(value) ? value.map(function (v) {
+	        if (typeof v !== 'object')
+	            return v;
+	        else
+	            return cloneNode(v);
+	    }) : value;
+	}   
 	
 	return result;
 }
