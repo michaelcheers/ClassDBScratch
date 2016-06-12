@@ -54,6 +54,32 @@ var testDoc = {
 	}
 ]};
 
+var paletteEntries = {
+	type:"document",
+	args: [
+	{
+		type:"native",
+		text:"alert ",
+		"native":alert,
+		args: [{ type:"literal", literal:"Hello"}]
+	},
+	{
+		type:"native",
+		text:[""," + "],
+		"native":add,
+		args: [
+			{
+				type:"literal",
+				literal:1
+			},
+			{
+				type:"literal",
+				literal:1
+			}
+		]
+	}]
+};
+
 function addParents(tree)
 {
 	function addParentsRec(current, parent)
@@ -105,7 +131,7 @@ function onclick_tableId(cell)
     }
 }
 
-document.addEventListener("dragover", function (event)
+/*document.addEventListener("dragover", function (event)
 {
     event.preventDefault();
 });
@@ -119,22 +145,28 @@ document.addEventListener("drop", function (event)
         event.target.style.border = "";
         var data = event.dataTransfer.getData("Text");
         event.target.appendChild(document.getElementById(data));
-    }*/
-});
+    }* /
+});*/
 
 function onload_init()
 {
-	displayWholePage(testDoc);
+	var scratchArea = document.getElementById("scratch_area");
+	displayWholePage(testDoc, scratchArea);
+	scratchArea.ondrop = placeDrop;
+	scratchArea.ondragover = allowDrop;
+	
+	var paletteArea = document.getElementById("palette_area");
+	displayWholePage(paletteEntries, paletteArea);
+	paletteArea.ondrop = deleteDrop;
+	paletteArea.ondragover = allowDrop;
 }
 
-function displayWholePage(node)
+function displayWholePage(node, rootElement)
 {
-	var scratchArea = document.getElementById("scratch_area");
-	
 	addParents(node);
 	
-	removeAllChildren(scratchArea);
-	scratchArea.appendChild(representScratchNode(node));
+	removeAllChildren(rootElement);
+	rootElement.appendChild(representScratchNode(node));
 }
 
 function removeAllChildren(element)
@@ -194,8 +226,6 @@ function representScratchNode(scratchNode)
 		                }
 		            }
 		        });
-			ondrop = drop;
-			ondragover = allowDrop;
 			break;
 	}
 	
@@ -210,7 +240,7 @@ function drag(ev)
 	g_draggingElement = ev.target;
 }
 
-function drop(ev)
+function placeDrop(ev)
 {
 	if(g_draggingElement !== undefined && g_draggingElement.scratchNode !== undefined)
 	{
@@ -224,7 +254,8 @@ function drop(ev)
 			{
 				dragAwayNode(draggingNode);
 				testDoc.args.push(draggingNode);
-				displayWholePage(testDoc); // redisplay
+				var scratchArea = document.getElementById("scratch_area");
+				displayWholePage(testDoc, scratchArea); // redisplay
 			}
 		}
 		else if(targetNode.parent !== undefined && !isAncestorOfNode(draggingNode, targetNode))
@@ -240,7 +271,8 @@ function drop(ev)
 			{
 				testDoc.args.push( replacedNode );
 			}
-			displayWholePage(testDoc); // redisplay
+			var scratchArea = document.getElementById("scratch_area");
+			displayWholePage(testDoc, scratchArea); // redisplay
 		}
 		
 		g_draggingElement = undefined;
@@ -301,6 +333,15 @@ function allowDrop(ev)
 	ev.preventDefault();
 }
 
+function deleteDrop(ev)
+{
+	var draggingNode = g_draggingElement.scratchNode;
+	dragAwayNode(draggingNode);
+
+	var scratchArea = document.getElementById("scratch_area");
+	displayWholePage(testDoc, scratchArea); // redisplay
+}
+
 function onclick_Run()
 {
 	var compiled = compile(
@@ -318,6 +359,20 @@ function onclick_Run()
 
 </script>
 <style>
+	#palette_area{
+		height:600px;
+		display: table-cell;
+		background-color:beige;
+	}
+	
+	#scratch_area{
+		background-color:#BBBBFF;
+		height:600px;
+		width:600px;
+		padding:5px;
+		float:left;
+	}
+
     .tableId{
         background-color:orange;
         border:outset;
@@ -396,8 +451,14 @@ function onclick_Run()
 </style>
 </head>
 <body onload="onload_init()">
+<table style="width:100%; height:100%">
+<tr><td style="vertical-align:top;">
+<button onclick="onclick_Run()">Run</button><br>
+<div id="palette_area"></div>
+</td><td style="vertical-align:top;">
 <div id="scratch_area"></div>
-<button onclick="onclick_Run()">Run</button>
+</td></tr>
+</table>
 
 <!--
 <table class="sctable">
