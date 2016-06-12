@@ -102,16 +102,24 @@ var unitTests = [
     },
     function () {
         var code =
-            {
-                type: "native",
-                native: setUnitReg,
-                args: [
-                {
-                    type: "literal",
-                    literal: "Hello World"
-                }]
-            };
-        run(code);
+            ({
+				globalVariables: [],
+				events: [{
+					name:'greenflag',
+					data:[],
+					body:[
+					{
+						type: "native",
+						"native": setUnitReg,
+						args: [
+						{
+							type: "literal",
+							literal: "Hello World"
+						}]
+					}]
+				}]
+			});
+        runProgram(compile(code));
         assertArrayEqual(["Hello World"], "Hello World not working.");
     },
     function () {
