@@ -228,7 +228,11 @@ function representScratchNode(scratchNode)
 		            onkeyup: function ()
 					{
 						this.size = this.value.length > 6? 20: 3;
-					}
+		            },
+		            onkeypress: function (event) {
+		                if (event.keyCode < 48 || event.keyCode > 57)
+		                    return false;
+		            }
 		        });
 			break;
 	}
