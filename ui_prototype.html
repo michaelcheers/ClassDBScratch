@@ -215,7 +215,7 @@ function representScratchNode(scratchNode)
 		case "literal":
 		    newNode = merge(document.createElement("INPUT"),
 		        {
-		            type: 'text',
+		            type: 'number',
 		            className: 'numberField',
 		            value: scratchNode.literal,
 		            size: 3,
