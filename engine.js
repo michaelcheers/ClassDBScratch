@@ -26,7 +26,7 @@ function checkTypes(values, expectedTypes) {
 }
 
 function $if(condition, consequent, alternate) {
-    checkTypes([condition, consequent, alternate], ['boolean', 'function', 'function']);
+    checkTypes(alternate ? [condition, consequent, alternate] : [condition, consequent], alternate ? ['boolean', 'function', 'function'] : ['boolean', 'function']);
     if (condition)
         consequent();
     else if (alternate)
@@ -180,7 +180,7 @@ function compileBlock(value, program, scope) {
             return {
                 type: 'native',
                 native: $if,
-                args: [value.condition, value.consequent, value.alternate]
+                args: value.alternate ? [value.condition, value.consequent, value.alternate] : [value.condition, value.consequent]
             };
         default:
             return value;
@@ -276,8 +276,10 @@ function run(value) {
 }
 
 function runBody(value) {
+    var oldLocalRegisters = localRegisters.slice(0);
     localRegisters = arrayInit(value.variables, null);
     value.body.forEach(run);
+    localRegisters = oldLocalRegisters;
 }
 
 function runProgram(value) {

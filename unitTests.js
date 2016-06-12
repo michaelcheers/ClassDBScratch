@@ -95,7 +95,15 @@ var unitTests = [
                     condition: {
                         native: eq,
                         type: 'native',
-                        args:[7, 7]
+                        args: [
+                            {
+                                type: 'literal',
+                                literal: 7
+                            },
+                            {
+                                type: 'literal',
+                                literal:7
+                            }]
                     },
                     consequent: {
                         type: 'function',
