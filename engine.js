@@ -310,8 +310,16 @@ function runProgram(value) {
                             keyDown(item.body, item.data[0]);
                         });
                     break;
+                case ClassDBScratch.Events.debugOnly:
+                    break;
                 default:
-
+                    var name = item.id;
+                    for (var key in ClassDBScratch.Events) {
+                        var value = ClassDBScratch.Events[key];
+                        if (value === item.id)
+                            name = key;
+                    }
+                    throw new Error("Event not supported: " + name + ".");
             }
         })(rItem);
     }
