@@ -257,7 +257,8 @@ function run(value) {
             var tempArgs = value.args.map(function (v) {
                 return run(v);
             });
-            return value["native"].apply(null, tempArgs);
+            var $t;
+            return value.native.apply(($t = value.specialApply, $t != null ? $t : null), tempArgs);
         case "function":
             return function () {
                 value.blocks.forEach(run);
@@ -276,8 +277,49 @@ function runProgram(value) {
     globalRegisters = arrayInit(value.globalVariables, null);
     var events = value.events;
     for (var item of events) {
-        if (item.id !== ClassDBScratch.Events.greenflag)
-            throw new Error("Not Supported");
-        runBody(item.body);
+        switch (item.id) {
+            case ClassDBScratch.Events.greenflag:
+                runBody(item.body);
+                break;
+            case ClassDBScratch.Events.keypress:
+                var itemBody = item.body;
+                var keyDown = function () {
+                    document.body.addEventListener('keydown', function (event) {
+                        if (event.keyCode == item.data[0])
+                            runBody(itemBody);
+                    });
+                }
+                if (document.body)
+                    keyDown();
+                else
+                    addOnLoad(keyDown);
+                break;
+            case ClassDBScratch.Events.keyrelease:
+                var keyDown = function () {
+                    document.body.addEventListener('keyup', function (event) {
+                        if (event.keyCode == item.data[0])
+                            runBody(item.body);
+                    });
+                }
+                if (document.body)
+                    keyDown();
+                else
+                    addOnLoad(keyDown);
+                break;
+            default:
+
+        }
     }
+}
+
+var onLoads = [];
+
+function addOnLoad(value) {
+    onLoads.push(value);
+    if (!window.onload)
+        window.onload = function () {
+            onLoads.forEach(function (v) {
+                v();
+            });
+        };
 }

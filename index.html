@@ -6,7 +6,53 @@
     <title></title>
     <script src="engine.js"></script>
     <script src="unitTests.js"></script>
+    <script>
+        var code =
+            {
+                globalVariables: [],
+                events: [
+                    {
+                        name: 'keypress',
+                        data: [0x41],
+                        body: [{
+                            type: 'native',
+                            native: screenWrite,
+                            args: [
+                                {
+                                    type: 'literal',
+                                    literal: "A pressed."
+                                }
+                            ]
+                        }]
+                    },
+                    {
+                        name: 'keyrelease',
+                        data: [0x41],
+                        body: [
+                            {
+                                type: 'native',
+                                native: screenWrite,
+                                args: [
+                                    {
+                                        literal: 'A released.',
+                                        type: 'literal'
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            };
+        runProgram(compile(code));
+        function screenWrite(value) {
+            document.body.appendChild(merge(document.createElement('span'),
+                {
+                    innerHTML: value
+                }));
+        }
+    </script>
 </head>
 <body>
+    Try pressing A.
 </body>
 </html>
