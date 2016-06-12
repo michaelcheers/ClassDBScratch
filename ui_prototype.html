@@ -262,10 +262,7 @@ function cloneNode(node)
 	        continue;
 	    var value = node[key];
 	    result[key] = isArray(value) ? value.map(function (v) {
-	        if (typeof v !== 'object')
-	            return v;
-	        else
-	            return cloneNode(v);
+	        return typeof v !== 'object' ? v : cloneNode(v);
 	    }) : value;
 	}   
 	
