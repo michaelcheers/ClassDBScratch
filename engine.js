@@ -176,6 +176,12 @@ function compileBlock(value, program, scope) {
             var valueCopy = merge({}, value);
             valueCopy.args = valueCopy.args.map(function (v) { return compileBlock(v, program, scope); });
             return valueCopy;
+        case 'ifStatement':
+            return {
+                type: 'native',
+                native: $if,
+                args: [value.condition, value.consequent, value.alternate]
+            };
         default:
             return value;
     }
@@ -254,9 +260,10 @@ function run(value) {
         case "literal":
             return value.literal;
         case "native":
-            var tempArgs = value.args.map(function (v) {
+            if (value.run === void 0) value.run = true;
+            var tempArgs = value.run ? value.args.map(function (v) {
                 return run(v);
-            });
+            }) : value.args;
             var $t;
             return value.native.apply(($t = value.specialApply, $t != null ? $t : null), tempArgs);
         case "function":

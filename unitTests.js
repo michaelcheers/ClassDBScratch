@@ -34,10 +34,8 @@ var unitTests = [
 				name: 'greenflag',
 				body:[
 				{
-					"type": "native",
-					"native": $if,
-					"args": [
-					{
+                    type: "ifStatement",
+					condition: {
 						type: "native",
 						"native": eq,
 						args: [
@@ -51,7 +49,7 @@ var unitTests = [
 							}
 						]
 					},
-					{
+					consequent: {
 						type: "function",
 						blocks: [
 							{
@@ -66,7 +64,7 @@ var unitTests = [
 							}
 						]
 					},
-					{
+					alternate:{
 						type: "function",
 						blocks: [
 							{
@@ -91,14 +89,31 @@ var unitTests = [
 							}
 						]
 					}
-					]
-				}
+				},
+                {
+                    type: 'ifStatement',
+                    condition: {
+                        native: eq,
+                        type: 'native',
+                        args:[7, 7]
+                    },
+                    consequent: {
+                        type: 'function',
+                        blocks: [
+                        {
+                            type: 'native',
+                            native: setUnitReg,
+                            run: false,
+                            args: ["Hello World 4"]
+                        }]
+                    }
+                }
 				]
 			}
 			]
         };
         runProgram(compile(code));
-        assertArrayEqual(["Hello World 2", "Hello World 3"], "If else not working.");
+        assertArrayEqual(["Hello World 2", "Hello World 3", "Hello World 4"], "If else not working.");
     },
     function () {
         var code =
