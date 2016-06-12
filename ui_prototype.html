@@ -219,12 +219,16 @@ function representScratchNode(scratchNode)
 		            className: 'numberField',
 		            value: scratchNode.literal,
 		            size: 3,
-		            onchange: function () {
-		                {
-		                    var $t;
-		                    this.scratchNode.literal = (($t = parseInt(this.value)) ? $t : this.value);
-		                }
-		            }
+		            onchange: function ()
+					{
+						var $t;
+						this.scratchNode.literal = (($t = parseInt(this.value)) ? $t : this.value);
+						this.size = this.value.length > 6? 20: 3;
+		            },
+		            onkeyup: function ()
+					{
+						this.size = this.value.length > 6? 20: 3;
+					}
 		        });
 			break;
 	}
