@@ -276,39 +276,44 @@ function runBody(value) {
 function runProgram(value) {
     globalRegisters = arrayInit(value.globalVariables, null);
     var events = value.events;
-    for (var item of events) {
-        switch (item.id) {
-            case ClassDBScratch.Events.greenflag:
-                runBody(item.body);
-                break;
-            case ClassDBScratch.Events.keypress:
-                var itemBody = item.body;
-                var keyDown = function () {
-                    document.body.addEventListener('keydown', function (event) {
-                        if (event.keyCode == item.data[0])
-                            runBody(itemBody);
-                    });
-                }
-                if (document.body)
-                    keyDown();
-                else
-                    addOnLoad(keyDown);
-                break;
-            case ClassDBScratch.Events.keyrelease:
-                var keyDown = function () {
-                    document.body.addEventListener('keyup', function (event) {
-                        if (event.keyCode == item.data[0])
-                            runBody(item.body);
-                    });
-                }
-                if (document.body)
-                    keyDown();
-                else
-                    addOnLoad(keyDown);
-                break;
-            default:
+    for (var rItem of events) {
+       (function (item) {
+            switch (item.id) {
+                case ClassDBScratch.Events.greenflag:
+                    runBody(item.body);
+                    break;
+                case ClassDBScratch.Events.keypress:
+                    var keyDown = function () {
+                        var itemBody = item.body;
+                        var itemData0 = item.data[0];
+                        document.body.addEventListener('keydown', function (event) {
+                            if (itemData0 === -1 || event.keyCode === itemData0)
+                                runBody(itemBody);
+                        });
+                    }
+                    if (document.body)
+                        keyDown();
+                    else
+                        addOnLoad(keyDown);
+                    break;
+                case ClassDBScratch.Events.keyrelease:
+                    var keyDown = function (itemBody, itemData0) {
+                        document.body.addEventListener('keyup', function (event) {
+                            if (itemData0 === -1 || event.keyCode === itemData0)
+                                runBody(itemBody);
+                        });
+                    }
+                    if (document.body)
+                        keyDown(item.body, item.data[0]);
+                    else
+                        addOnLoad(function () {
+                            keyDown(item.body, item.data[0]);
+                        });
+                    break;
+                default:
 
-        }
+            }
+        })(rItem);
     }
 }
 

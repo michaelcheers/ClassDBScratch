@@ -40,6 +40,38 @@
                                 ]
                             }
                         ]
+                    },
+                    {
+                        name: 'keypress',
+                        data: [-1],
+                        body: [
+                            {
+                                type: 'native',
+                                native: screenWrite,
+                                args: [
+                                    {
+                                        literal: 'A key was pressed.',
+                                        type: 'literal'
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        name: 'keyrelease',
+                        data: [-1],
+                        body: [
+                            {
+                                type: 'native',
+                                native: screenWrite,
+                                args: [
+                                    {
+                                        type: 'literal',
+                                        literal: 'A key was released'
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             };
@@ -54,5 +86,6 @@
 </head>
 <body>
     Try pressing A.
+    Then try pressing another key.
 </body>
 </html>
