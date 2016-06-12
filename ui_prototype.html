@@ -244,19 +244,63 @@ function drag(ev)
 	g_draggingElement = ev.target;
 }
 
+function getRoot(node)
+{
+	while(node.parent !== undefined)
+		node = node.parent;
+		
+	return node;
+}
+
+function cloneNode(node)
+{
+	var result = {};
+	for(var key in node)
+	{
+		if(key === "parent")
+			continue;
+
+		if(Array.isArray(node[key]))
+		{
+			var newArray = [];
+			var baseArray = node[key];
+			for(var Idx = 0; Idx < baseArray.length; ++Idx)
+			{
+				newArray[Idx] = cloneNode(baseArray[Idx]);
+			}
+			result[key] = newArray;
+		}
+		else
+		{
+			result[key] = node[key];
+		}
+	}
+	
+	return result;
+}
+
 function placeDrop(ev)
 {
 	if(g_draggingElement !== undefined && g_draggingElement.scratchNode !== undefined)
 	{
 		var draggingNode = g_draggingElement.scratchNode;
 		var targetNode = ev.target.scratchNode;
+		var draggingRoot = getRoot(draggingNode);
 
+		if(draggingRoot === paletteEntries)
+		{
+			// dragged a palette entry, clone it
+			draggingNode = cloneNode(draggingNode);
+		}
+		
 		if(targetNode === undefined)
 		{
 			// dragged a node into nowhere, add it to the root doc
 			if(draggingNode.parent !== testDoc)
 			{
-				dragAwayNode(draggingNode);
+				if(draggingNode.parent !== undefined)
+					dragAwayNode(draggingNode);
+				
 				testDoc.args.push(draggingNode);
 				var scratchArea = document.getElementById("scratch_area");
 				displayWholePage(testDoc, scratchArea); // redisplay
