@@ -354,16 +354,9 @@ function createLiteralNode(value)
 
 function getParentArgIndex(targetNode)
 {
-	var parentArgs = targetNode.parent.args;
-	for(var Idx = 0; Idx < parentArgs.length; ++Idx)
-	{
-		if( parentArgs[Idx] === targetNode )
-		{
-			return Idx;
-		}
-	}
-	
-	return undefined;
+    if (!targetNode.parent) return undefined;
+	var $t;
+	return $t = targetNode.parent.args.indexOf(targetNode) === -1 ? undefined : $t;
 }
 
 function allowDrop(ev)
