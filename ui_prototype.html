@@ -334,14 +334,8 @@ function dragAwayNode(node)
 
 function isAncestorOfNode(ancestor, node)
 {
-	do
-	{
-		if(ancestor === node)
+	do if(ancestor === node)
 			return true;
-			
-		node = node.parent
-	}
-	while(node !== undefined);
 	
 	return false;
 }
