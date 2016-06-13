@@ -336,6 +336,7 @@ function isAncestorOfNode(ancestor, node)
 {
 	do if(ancestor === node)
 			return true;
+	while((node = node.parent) !== undefined);
 	
 	return false;
 }
