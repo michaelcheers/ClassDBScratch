@@ -1,529 +1,605 @@
 <html>
 <head>
-<title></title>
-<script src="engine.js"></script>
-<script>
-/// <reference path = "engine.js" />
-var selectedTable = undefined;
+    <title></title>
+    <script src="engine.js"></script>
+    <script>
+        /// <reference path = "engine.js" />
+        var selectedTable = undefined;
 
-var testDoc = {
-	type:"document",
-	args: [
-	{
-		type:"native",
-		text:"alert ",
-		"native":alert,
-		args: [
-		{
-			type:"native",
-			text:[""," + "],
-			"native":add,
-			args: [
-				{
-					type:"native",
-					text:[""," + "],
-					"native":add,
-					args: [
-						{
-							type:"literal",
-							literal:77
-						},
-						{
-							type:"literal",
-							literal:88
-						}
-					]
-				},
-				{
-					type:"native",
-					text:[""," + "],
-					"native":add,
-					args: [
-						{
-							type:"literal",
-							literal:55
-						},
-						{
-							type:"literal",
-							literal:66
-						}
-					]
-				}
-			]
-		}]
-	}
-]};
-
-var paletteEntries = {
-	type:"document",
-	args: [
-	{
-		type:"native",
-		text:"alert ",
-		"native":alert,
-		args: [{ type:"literal", literal:"Hello"}]
-	},
-	{
-		type:"native",
-		text:[""," + "],
-		"native":add,
-		args: [
-			{
-				type:"literal",
-				literal:1
-			},
-			{
-				type:"literal",
-				literal:1
-			}
-		]
-	}]
-};
-
-function addParents(tree)
-{
-	function addParentsRec(current, parent)
-	{
-		current.parent = parent;
-		if(current.args !== undefined)
-		{
-			for(var Idx = 0; Idx < current.args.length; ++Idx)
-			{
-				addParentsRec(current.args[Idx], current);
-			}
-		}
-	};
-	
-	addParentsRec(tree, undefined);
-}
-
-function onclick_tableId(cell)
-{
-    if (selectedTable != undefined)
-    {
-        // restore default settings
-        selectedTable.className = "sctable";
-        selectedTable.draggable = false;
-        var headerElement = selectedTable.firstChild.firstChild;
-        while(headerElement !== null)
-        {
-            if (headerElement.nodeName === "TD")
+        var testDoc = {
+            type: "document",
+            args: [
             {
-                headerElement.draggable = true;
+                type: "native",
+                text: "alert ",
+                "native": alert,
+                args: [
+                {
+                    type: "native",
+                    text: ["", " + "],
+                    "native": add,
+                    args: [
+                        {
+                            type: "native",
+                            text: ["", " + "],
+                            "native": add,
+                            args: [
+                                {
+                                    type: "literal",
+                                    literal: 77
+                                },
+                                {
+                                    type: "literal",
+                                    literal: 88
+                                }
+                            ]
+                        },
+                        {
+                            type: "native",
+                            text: ["", " + "],
+                            "native": add,
+                            args: [
+                                {
+                                    type: "literal",
+                                    literal: 55
+                                },
+                                {
+                                    type: "literal",
+                                    literal: 66
+                                }
+                            ]
+                        }
+                    ]
+                }]
             }
-            headerElement = headerElement.nextSibling;
+            ]
+        };
+
+        var paletteEntries = {
+            type: "document",
+            args: [
+            {
+                type: "native",
+                text: "alert ",
+                "native": alert,
+                args: [{ type: "literal", literal: "Hello" }]
+            },
+            {
+                type: "native",
+                text: ["", " + "],
+                "native": add,
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "native",
+                text: ["", " - "],
+                "native": sub,
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "native",
+                text: ["", " * "],
+                "native": mul,
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "native",
+                text: ["", " / "],
+                "native": div,
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "native",
+                text: ["pick random from ", " to "],
+                "native": rand,
+                args: [
+                    {
+                        type: "literal",
+                        literal: 1
+                    },
+                    {
+                        type: "literal",
+                        literal: 10
+                    }
+                ]
+            },
+            {
+                type: "native",
+                text: ["", " < "],
+                "native": lt,
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "native",
+                text: ["", " = "],
+                native: eq,
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "native",
+                text: ["", " > "],
+                "native": gt,
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            }]
+        };
+
+        function addParents(tree) {
+            function addParentsRec(current, parent) {
+                current.parent = parent;
+                if (current.args !== undefined) {
+                    for (var Idx = 0; Idx < current.args.length; ++Idx) {
+                        addParentsRec(current.args[Idx], current);
+                    }
+                }
+            };
+
+            addParentsRec(tree, undefined);
         }
-    }
-    selectedTable = merge(cell.parentNode.parentNode, 
+
+        function onclick_tableId(cell) {
+            if (selectedTable != undefined) {
+                // restore default settings
+                selectedTable.className = "sctable";
+                selectedTable.draggable = false;
+                var headerElement = selectedTable.firstChild.firstChild;
+                while (headerElement !== null) {
+                    if (headerElement.nodeName === "TD") {
+                        headerElement.draggable = true;
+                    }
+                    headerElement = headerElement.nextSibling;
+                }
+            }
+            selectedTable = merge(cell.parentNode.parentNode,
+                {
+                    className: "sctable_moving",
+                    draggable: true
+                });
+
+            var headerElement = selectedTable.firstChild.firstChild;
+            while (headerElement !== null) {
+                if (headerElement.nodeName === "TD") {
+                    headerElement.draggable = false;
+                }
+                headerElement = headerElement.nextSibling;
+            }
+        }
+
+        /*document.addEventListener("dragover", function (event)
         {
-            className: "sctable_moving",
-            draggable: true
+            event.preventDefault();
         });
 
-    var headerElement = selectedTable.firstChild.firstChild;
-    while (headerElement !== null)
-    {
-        if (headerElement.nodeName === "TD")
+        document.addEventListener("drop", function (event)
         {
-            headerElement.draggable = false;
+            event.preventDefault();
+        /*    if (event.target.className == "droptarget")
+            {
+                document.getElementById("demo").style.color = "";
+                event.target.style.border = "";
+                var data = event.dataTransfer.getData("Text");
+                event.target.appendChild(document.getElementById(data));
+            }* /
+        });*/
+
+        function onload_init() {
+            var scratchArea = document.getElementById("scratch_area");
+            displayWholePage(testDoc, scratchArea);
+            scratchArea.ondrop = placeDrop;
+            scratchArea.ondragover = allowDrop;
+
+            var paletteArea = document.getElementById("palette_area");
+            displayWholePage(paletteEntries, paletteArea);
+            paletteArea.ondrop = deleteDrop;
+            paletteArea.ondragover = allowDrop;
         }
-        headerElement = headerElement.nextSibling;
-    }
-}
 
-/*document.addEventListener("dragover", function (event)
-{
-    event.preventDefault();
-});
+        function displayWholePage(node, rootElement) {
+            addParents(node);
 
-document.addEventListener("drop", function (event)
-{
-    event.preventDefault();
-/*    if (event.target.className == "droptarget")
-    {
-        document.getElementById("demo").style.color = "";
-        event.target.style.border = "";
-        var data = event.dataTransfer.getData("Text");
-        event.target.appendChild(document.getElementById(data));
-    }* /
-});*/
+            removeAllChildren(rootElement);
+            rootElement.appendChild(representScratchNode(node));
+        }
 
-function onload_init()
-{
-	var scratchArea = document.getElementById("scratch_area");
-	displayWholePage(testDoc, scratchArea);
-	scratchArea.ondrop = placeDrop;
-	scratchArea.ondragover = allowDrop;
-	
-	var paletteArea = document.getElementById("palette_area");
-	displayWholePage(paletteEntries, paletteArea);
-	paletteArea.ondrop = deleteDrop;
-	paletteArea.ondragover = allowDrop;
-}
+        function removeAllChildren(element) {
+            while (element.firstChild !== null) {
+                element.removeChild(element.firstChild);
+            }
+        }
 
-function displayWholePage(node, rootElement)
-{
-	addParents(node);
-	
-	removeAllChildren(rootElement);
-	rootElement.appendChild(representScratchNode(node));
-}
+        function representScratchNode(scratchNode) {
+            var newNode;
+            switch (scratchNode.type) {
+                case "document":
+                    newNode = document.createElement("DIV");
+                    for (var Idx = 0; Idx < scratchNode.args.length; ++Idx) {
+                        var containerDiv = document.createElement("DIV");
+                        containerDiv.appendChild(representScratchNode(scratchNode.args[Idx]));
+                        newNode.appendChild(containerDiv);
+                    }
+                    break;
 
-function removeAllChildren(element)
-{
-	while(element.firstChild !== null)
-	{
-		element.removeChild(element.firstChild);
-	}
-}
+                case "native":
+                    newNode = merge(document.createElement("DIV"),
+                        {
+                            className: "nativeNode",
+                            draggable: true,
+                            ondragstart: drag
+                        });
 
-function representScratchNode(scratchNode)
-{
-	var newNode;
-	switch(scratchNode.type)
-	{
-		case "document":
-			newNode = document.createElement("DIV");
-			for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
-			{
-				var containerDiv = document.createElement("DIV");
-				containerDiv.appendChild( representScratchNode(scratchNode.args[Idx]) );
-				newNode.appendChild( containerDiv );
-			}
-			break;
-			
-		case "native":
-		    newNode = merge(document.createElement("DIV"),
+                    var textList = scratchNode.text;
+                    var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
+
+                    for (var Idx = 0; Idx < scratchNode.args.length; ++Idx) {
+                        if (textList[Idx] !== undefined) {
+                            newNode.appendChild(document.createTextNode(textList[Idx]));
+                        }
+                        newNode.appendChild(representScratchNode(scratchNode.args[Idx]));
+                    }
+                    break;
+                case "literal":
+                    newNode = merge(document.createElement("INPUT"),
+                        {
+                            type: 'text',
+                            className: 'numberField',
+                            value: scratchNode.literal,
+                            size: 3,
+                            onchange: function () {
+                                var $t;
+                                this.scratchNode.literal = (($t = numParse(this.value)) ? $t : this.value);
+                                this.size = this.value.length > 6 ? 20 : 3;
+                            },
+                            onkeyup: function () {
+                                this.size = this.value.length > 6 ? 20 : 3;
+                            }
+                        });
+                    break;
+            }
+
+            newNode.scratchNode = scratchNode;
+            return newNode;
+        }
+
+        var g_draggingElement;
+
+        function drag(ev) {
+            g_draggingElement = ev.target;
+        }
+
+        function getRoot(node) {
+            while (node.parent !== undefined)
+                node = node.parent;
+
+            return node;
+        }
+
+        function cloneNode(node) {
+            checkTypes([node], ['object']);
+            var result = {};
+            for (var key in node) {
+                if (key === "parent")
+                    continue;
+                var value = node[key];
+                result[key] = isArray(value) ? value.map(function (v) {
+                    return typeof v !== 'object' ? v : cloneNode(v);
+                }) : value;
+            }
+
+            return result;
+        }
+
+        function placeDrop(ev) {
+            if (g_draggingElement !== undefined && g_draggingElement.scratchNode !== undefined) {
+                var draggingNode = g_draggingElement.scratchNode;
+                var targetNode = ev.target.scratchNode;
+                var draggingRoot = getRoot(draggingNode);
+
+                if (draggingRoot === paletteEntries) {
+                    // dragged a palette entry, clone it
+                    draggingNode = cloneNode(draggingNode);
+                }
+
+                if (targetNode === undefined) {
+                    // dragged a node into nowhere, add it to the root doc
+                    if (draggingNode.parent !== testDoc) {
+                        dragAwayNode(draggingNode);
+
+                        testDoc.args.push(draggingNode);
+                        var scratchArea = document.getElementById("scratch_area");
+                        displayWholePage(testDoc, scratchArea); // redisplay
+                    }
+                }
+                else if (targetNode.parent !== undefined && !isAncestorOfNode(draggingNode, targetNode)) {
+                    dragAwayNode(draggingNode);
+
+                    var targetArgIdx = getParentArgIndex(targetNode);
+
+                    var replacedNode = targetNode.parent.args[targetArgIdx];
+                    targetNode.parent.args[targetArgIdx] = draggingNode;
+
+                    if (replacedNode !== undefined && replacedNode.type !== "literal") {
+                        testDoc.args.push(replacedNode);
+                    }
+                    var scratchArea = document.getElementById("scratch_area");
+                    displayWholePage(testDoc, scratchArea); // redisplay
+                }
+
+                g_draggingElement = undefined;
+            }
+        }
+
+        function dragAwayNode(node) {
+            if (node.parent === undefined)
+                return;
+
+            var draggedArgIdx = getParentArgIndex(node);
+            if (node.parent === testDoc) {
+                node.parent.args.splice(draggedArgIdx, 1);
+            }
+            else {
+                node.parent.args[draggedArgIdx] = createLiteralNode(0);
+            }
+        }
+
+        function isAncestorOfNode(ancestor, node) {
+            do if (ancestor === node)
+                return true;
+            while ((node = node.parent) !== undefined);
+
+            return false;
+        }
+
+        function createLiteralNode(value) {
+            return {
+                type: "literal",
+                literal: value
+            };
+        }
+
+        function getParentArgIndex(targetNode) {
+            if (!targetNode.parent) return undefined;
+            var index = targetNode.parent.args.indexOf(targetNode);
+            return index === -1 ? undefined : index;
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function deleteDrop(ev) {
+            var draggingNode = g_draggingElement.scratchNode;
+            dragAwayNode(draggingNode);
+
+            var scratchArea = document.getElementById("scratch_area");
+            displayWholePage(testDoc, scratchArea); // redisplay
+        }
+
+        function onclick_Run() {
+            var compiled = compile(
                 {
-                    className: "nativeNode",
-                    draggable: true,
-                    ondragstart: drag
-                });
-			
-			var textList = scratchNode.text;
-            var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
+                    globalVariables: [],
+                    events: [{
+                        name: 'greenflag',
+                        data: [],
+                        body: testDoc.args
+                    }]
+                }
+            );
+            runProgram(compiled);
+        }
 
-			for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
-			{
-				if(textList[Idx] !== undefined)
-				{
-					newNode.appendChild( document.createTextNode(textList[Idx]) );
-				}
-				newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
-			}
-			break;
-		case "literal":
-		    newNode = merge(document.createElement("INPUT"),
-		        {
-		            type: 'text',
-		            className: 'numberField',
-		            value: scratchNode.literal,
-		            size: 3,
-		            onchange: function ()
-					{
-						var $t;
-						this.scratchNode.literal = (($t = parseInt(this.value)) ? $t : this.value);
-						this.size = this.value.length > 6? 20: 3;
-		            },
-		            onkeyup: function ()
-					{
-						this.size = this.value.length > 6? 20: 3;
-					}
-		        });
-			break;
-	}
-	
-	newNode.scratchNode = scratchNode;
-	return newNode;
-}
+    </script>
+    <style>
+        #palette_area {
+            height: 600px;
+            display: table-cell;
+            background-color: beige;
+        }
 
-var g_draggingElement;
+        #scratch_area {
+            background-color: #BBBBFF;
+            height: 600px;
+            width: 600px;
+            padding: 5px;
+            float: left;
+        }
 
-function drag(ev)
-{
-	g_draggingElement = ev.target;
-}
+        .tableId {
+            background-color: orange;
+            border: outset;
+            border-radius: 6px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            padding-left: 4px;
+            padding-right: 4px;
+            cursor: pointer;
+        }
 
-function getRoot(node)
-{
-	while(node.parent !== undefined)
-		node = node.parent;
-		
-	return node;
-}
+        .tableHead {
+            background-color: #DDDDDD;
+            border-bottom: solid;
+            border-right: solid;
+            border-width: 1px;
+            cursor: pointer;
+        }
 
-function cloneNode(node)
-{
-    checkTypes([node], ['object']);
-	var result = {};
-	for(var key in node)
-	{
-	    if (key === "parent")
-	        continue;
-	    var value = node[key];
-	    result[key] = isArray(value) ? value.map(function (v) {
-	        return typeof v !== 'object' ? v : cloneNode(v);
-	    }) : value;
-	}   
-	
-	return result;
-}
+        .tableLhs {
+            background-color: #DDDDDD;
+            border-bottom: solid;
+            border-right: solid;
+            border-width: 1px;
+            cursor: pointer;
+            text-align: right;
+        }
 
-function placeDrop(ev)
-{
-	if(g_draggingElement !== undefined && g_draggingElement.scratchNode !== undefined)
-	{
-		var draggingNode = g_draggingElement.scratchNode;
-		var targetNode = ev.target.scratchNode;
-		var draggingRoot = getRoot(draggingNode);
+        .tableCell {
+            border-bottom: solid;
+            border-right: solid;
+            border-width: 1px;
+            border-color: #AAAAAA;
+        }
 
-		if(draggingRoot === paletteEntries)
-		{
-			// dragged a palette entry, clone it
-			draggingNode = cloneNode(draggingNode);
-		}
-		
-		if(targetNode === undefined)
-		{
-			// dragged a node into nowhere, add it to the root doc
-			if(draggingNode.parent !== testDoc)
-			{
-				dragAwayNode(draggingNode);
-				
-				testDoc.args.push(draggingNode);
-				var scratchArea = document.getElementById("scratch_area");
-				displayWholePage(testDoc, scratchArea); // redisplay
-			}
-		}
-		else if(targetNode.parent !== undefined && !isAncestorOfNode(draggingNode, targetNode))
-		{
-			dragAwayNode(draggingNode);
+        .sctable {
+            position: absolute;
+        }
 
-			var targetArgIdx = getParentArgIndex(targetNode);
-			
-			var replacedNode = targetNode.parent.args[targetArgIdx];
-			targetNode.parent.args[targetArgIdx] = draggingNode;
-					
-			if(replacedNode !== undefined && replacedNode.type !== "literal")
-			{
-				testDoc.args.push( replacedNode );
-			}
-			var scratchArea = document.getElementById("scratch_area");
-			displayWholePage(testDoc, scratchArea); // redisplay
-		}
-		
-		g_draggingElement = undefined;
-	}
-}
+        .sctable_moving {
+            position: absolute;
+            border: dotted;
+        }
 
-function dragAwayNode(node)
-{
-	if(node.parent === undefined)
-		return;
+        .nativeNode {
+            border: outset;
+            border-color: #FFCC66;
+            background-color: #FFA500;
+            border-radius: 6px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            padding-left: 4px;
+            padding-right: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
 
-	var draggedArgIdx = getParentArgIndex(node);
-	if(node.parent === testDoc)
-	{
-		node.parent.args.splice(draggedArgIdx, 1);
-	}
-	else
-	{
-		node.parent.args[draggedArgIdx] = createLiteralNode(0);
-	}
-}
+        .valueNode {
+            border-style: outset;
+            border-color: #B060B0;
+            background-color: #800080;
+            color: white;
+            border-radius: 6px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            padding-left: 4px;
+            padding-right: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
 
-function isAncestorOfNode(ancestor, node)
-{
-	do if(ancestor === node)
-			return true;
-	while((node = node.parent) !== undefined);
-	
-	return false;
-}
-
-function createLiteralNode(value)
-{
-	return {
-		type:"literal",
-		literal:value
-	};
-}
-
-function getParentArgIndex(targetNode)
-{
-    if (!targetNode.parent) return undefined;
-	var index = targetNode.parent.args.indexOf(targetNode);
-	return index === -1 ? undefined : index;
-}
-
-function allowDrop(ev)
-{
-	ev.preventDefault();
-}
-
-function deleteDrop(ev)
-{
-	var draggingNode = g_draggingElement.scratchNode;
-	dragAwayNode(draggingNode);
-
-	var scratchArea = document.getElementById("scratch_area");
-	displayWholePage(testDoc, scratchArea); // redisplay
-}
-
-function onclick_Run()
-{
-	var compiled = compile(
-		{
-			globalVariables:[],
-			events:[{
-				name:'greenflag',
-				data:[],
-				body:testDoc.args
-			}]
-		}
-	);
-	runProgram(compiled);
-}
-
-</script>
-<style>
-	#palette_area{
-		height:600px;
-		display: table-cell;
-		background-color:beige;
-	}
-	
-	#scratch_area{
-		background-color:#BBBBFF;
-		height:600px;
-		width:600px;
-		padding:5px;
-		float:left;
-	}
-
-    .tableId{
-        background-color:orange;
-        border:outset;
-        border-radius:6px;
-        padding-top:1px;
-        padding-bottom:1px;
-        padding-left:4px;
-        padding-right:4px;
-        cursor:pointer;
-    }
-	.tableHead{
-		background-color:#DDDDDD;
-        border-bottom:solid;
-        border-right:solid;
-        border-width:1px;
-        cursor:pointer;
-	}
-	.tableLhs{
-		background-color:#DDDDDD;
-        border-bottom:solid;
-        border-right:solid;
-        border-width:1px;
-        cursor:pointer;
-        text-align:right;
-	}
-	.tableCell{
-        border-bottom:solid;
-        border-right:solid;
-        border-width:1px;
-        border-color:#AAAAAA;
-	}
-    .sctable{
-        position:absolute;
-    }
-    .sctable_moving{
-        position:absolute;
-        border:dotted;
-    }
-
-    .nativeNode{
-        border:outset;
-		border-color:#FFCC66;
-        background-color:#FFA500;
-        border-radius:6px;
-        padding-top:1px;
-        padding-bottom:1px;
-        padding-left:4px;
-        padding-right:4px;
-        cursor:pointer;
-		display:inline-block;
-    }
-    .valueNode{
-        border-style:outset;
-		border-color:#B060B0;
-        background-color:#800080;
-		color:white;
-        border-radius:6px;
-        padding-top:1px;
-        padding-bottom:1px;
-        padding-left:4px;
-        padding-right:4px;
-        cursor:pointer;
-		display:inline-block;
-    }
-    .numberField{
-        background-color:white;
-        border:inset;
-        border-width:1px;
-        border-radius:2px;
-        padding-top:1px;
-        padding-bottom:1px;
-        padding-left:4px;
-        padding-right:4px;
-		display:inline-block;
-    }
-</style>
+        .numberField {
+            background-color: white;
+            border: inset;
+            border-width: 1px;
+            border-radius: 2px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            padding-left: 4px;
+            padding-right: 4px;
+            display: inline-block;
+        }
+    </style>
 </head>
 <body onload="onload_init()">
-<table style="width:100%; height:100%">
-<tr><td style="vertical-align:top;">
-<button onclick="onclick_Run()">Run</button><br>
-<div id="palette_area"></div>
-</td><td style="vertical-align:top;">
-<div id="scratch_area"></div>
-</td></tr>
-</table>
+    <table style="width:100%; height:100%">
+        <tr>
+            <td style="vertical-align:top;">
+                <button onclick="onclick_Run()">Run</button>
+                <br>
+                <div id="palette_area"></div>
+            </td>
+            <td style="vertical-align:top;">
+                <div id="scratch_area"></div>
+            </td>
+        </tr>
+    </table>
 
-<!--
-<table class="sctable">
-    <tr>
-        <td class="tableId" draggable="true" onclick="onclick_tableId(this)">Users</td>
-        <td class="tableHead">Name</td>
-        <td class="tableHead">Age</td>
-    </tr>
-    <tr>
-        <td class="tableLhs">1</td>
-        <td class="tableCell">Sylvia</td>
-        <td class="tableCell">35</td>
-    </tr>
-    <tr>
-        <td class="tableLhs">2</td>
-        <td class="tableCell">Laurie</td>
-        <td class="tableCell">36</td>
-    </tr>
-</table>
+    <!--
+    <table class="sctable">
+        <tr>
+            <td class="tableId" draggable="true" onclick="onclick_tableId(this)">Users</td>
+            <td class="tableHead">Name</td>
+            <td class="tableHead">Age</td>
+        </tr>
+        <tr>
+            <td class="tableLhs">1</td>
+            <td class="tableCell">Sylvia</td>
+            <td class="tableCell">35</td>
+        </tr>
+        <tr>
+            <td class="tableLhs">2</td>
+            <td class="tableCell">Laurie</td>
+            <td class="tableCell">36</td>
+        </tr>
+    </table>
 
-<table class="sctable" style="left:200px;">
-    <tr>
-        <td class="tableId" draggable="true" onclick="onclick_tableId(this)">Products &#8226;</td>
-        <td class="tableHead">Name</td>
-        <td class="tableHead">Price</td>
-    </tr>
-    <tr>
-        <td class="tableLhs">1</td>
-        <td class="tableCell">Hairbrush</td>
-        <td class="tableCell">$5.00</td>
-    </tr>
-    <tr>
-        <td class="tableLhs">2</td>
-        <td class="tableCell">Shampoo</td>
-        <td class="tableCell">$1.40</td>
-    </tr>
-</table>
--->
+    <table class="sctable" style="left:200px;">
+        <tr>
+            <td class="tableId" draggable="true" onclick="onclick_tableId(this)">Products &#8226;</td>
+            <td class="tableHead">Name</td>
+            <td class="tableHead">Price</td>
+        </tr>
+        <tr>
+            <td class="tableLhs">1</td>
+            <td class="tableCell">Hairbrush</td>
+            <td class="tableCell">$5.00</td>
+        </tr>
+        <tr>
+            <td class="tableLhs">2</td>
+            <td class="tableCell">Shampoo</td>
+            <td class="tableCell">$1.40</td>
+        </tr>
+    </table>
+    -->
 </body>
 </html>

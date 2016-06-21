@@ -230,7 +230,7 @@ var unitTests = [
         assertArrayEqual(['hello world']);
     }
 ];
-for (let item of unitTests)
+for (var item of unitTests)
 {
     item();
     clearRegister();

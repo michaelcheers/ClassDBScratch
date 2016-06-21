@@ -16,6 +16,130 @@ ClassDBScratch.Events =
         debugOnly: 6
     };
 
+ClassDBScratch.Random = {
+    MBIG: 2147483647,
+    MSEED: 161803398,
+    MZ: 0,
+    inext: 0,
+    inextp: 0,
+    seedArray: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    init: function () {
+        var Seed = ((new Date().getTime() * 10000) | 0), ii, mj, mk;
+
+        //Initialize our Seed array.
+        //This algorithm comes from Numerical Recipes in C (2nd Ed.)
+        var subtraction = (Seed === -2147483648) ? 2147483647 : Math.abs(Seed);
+        mj = (this.MSEED - subtraction) | 0;
+        this.seedArray[55] = mj;
+        mk = 1;
+        for (var i = 1; i < 55; i++) { //Apparently the range [1..55] is special (Knuth) and so we're wasting the 0'th position.
+            ii = (21 * i) % 55;
+            this.seedArray[ii] = mk;
+            mk = (mj - mk) | 0;
+            if (mk < 0) {
+                mk = (mk + this.MBIG) | 0;
+            }
+            mj = this.seedArray[ii];
+        }
+        for (var k = 1; k < 5; k++) {
+            for (var i1 = 1; i1 < 56; ++i1) {
+                this.seedArray[i1] = (this.seedArray[i1] - this.seedArray[((1 + (((i1 + 30) | 0)) % 55) | 0)]) | 0;
+                if (this.seedArray[i1] < 0) {
+                    this.seedArray[i1] = (this.seedArray[i1] + this.MBIG) | 0;
+                }
+            }
+        }
+        this.inext = 0;
+        this.inextp = 21;
+        Seed = 1;
+    },
+    sample: function () {
+        //Including this division at the end gives us significantly improved
+        //random number distribution.
+        return (this.internalSample() * (4.6566128752457969E-10));
+    },
+    internalSample: function () {
+        var retVal;
+        var locINext = this.inext;
+        var locINextp = this.inextp;
+
+        if (((locINext = (locINext + 1) | 0)) >= 56) {
+            locINext = 1;
+        }
+
+        if (((locINextp = (locINextp + 1) | 0)) >= 56) {
+            locINextp = 1;
+        }
+
+        retVal = (this.seedArray[locINext] - this.seedArray[locINextp]) | 0;
+
+        if (retVal === this.MBIG) {
+            retVal = (retVal - 1) | 0;
+        }
+
+        if (retVal < 0) {
+            retVal = (retVal + this.MBIG) | 0;
+        }
+
+        this.seedArray[locINext] = retVal;
+
+        this.inext = locINext;
+        this.inextp = locINextp;
+
+        return retVal;
+    },
+    next: function () {
+        return this.internalSample();
+    },
+    next$1: function (maxValue) {
+        if (maxValue < 0) {
+            throw new Error("'maxValue' must be greater than zero.");
+        }
+        return (this.sample() * maxValue) | 0;
+    },
+    next$2: function (minValue, maxValue) {
+        if (minValue > maxValue) {
+            throw new Error("'minValue' cannot be greater than maxValue.");
+        }
+
+        var range = maxValue - minValue;
+        if (range <= 2147483647) {
+            return (((this.sample() * range) | 0) + minValue) | 0;
+        }
+        else {
+            return ((this.getSampleForLargeRange() * range) + minValue) | 0;
+        }
+    },
+    getSampleForLargeRange: function () {
+        // The distribution of double value returned by Sample 
+        // is not distributed well enough for a large range.
+        // If we use Sample for a range [Int32.MinValue..Int32.MaxValue)
+        // We will end up getting even numbers only.
+
+        var result = this.internalSample();
+        // Note we can't use addition here. The distribution will be bad if we do that.
+        var negative = (this.internalSample() % 2 === 0) ? true : false; // decide the sign based on second sample
+        if (negative) {
+            result = (-result) | 0;
+        }
+        var d = result;
+        d += (2147483646); // get a number in range [0 .. 2 * Int32MaxValue - 1)
+        d /= 4294967293;
+        return d;
+    },
+    nextDouble: function () {
+        return this.sample();
+    },
+    nextBytes: function (buffer) {
+        if (buffer == null)
+            throw new Error("Empty buffer.");
+        for (var i = 0; i < buffer.length; i = (i + 1) | 0) {
+            buffer[i] = ((this.internalSample() % (256))) & 255;
+        }
+    }
+};
+ClassDBScratch.Random.init();
+
 function checkTypes(values, expectedTypes) {
     for (var n = 0; n < values.length; n++) {
         var itemValue = values[n];
@@ -33,6 +157,11 @@ function $if(condition, consequent, alternate) {
         alternate();
 }
 
+function and(a, b) {
+    checkTypes([a, b], ['boolean', 'boolean']);
+    return a && b;
+}
+
 function add(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a + b;
@@ -48,9 +177,34 @@ function mul(a, b) {
     return a * b;
 }
 
+function not(value) {
+    checkTypes([value], ['boolean']);
+    return !value;
+}
+
+function or(a, b) {
+    checkTypes([a, b], ['boolean', 'boolean']);
+    return a || b;
+}
+
+function rand(a, b) {
+    return ClassDBScratch.Random.next$2(a, b);
+}
+
 function sub(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a - b;
+}
+
+function numParse(value) {
+    if (value === 'NaN') return NaN;
+    var $t;
+    for (var n = 0; n < value.length; n++) {
+        var item = value[n];
+        if ((item < 48 || item > 57) && item !== 43 && item !== 45 && item !== 101) throw new Error("Number parse is invalid: \"" + value + "\"");
+    }
+    if (isNaN($t = parseFloat(value))) throw new Error("Number parse is invalid: \"" + value + "\"");
+    return $t;
 }
 
 function concat(a, b) {
@@ -87,12 +241,12 @@ function gt(a, b) {
     return a > b;
 }
 
-function leq(a, b) {
+function lte(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a <= b;
 }
 
-function geq(a, b) {
+function gte(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a >= b;
 }
