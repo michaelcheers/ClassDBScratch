@@ -251,6 +251,16 @@ function gte(a, b) {
     return a >= b;
 }
 
+var answer;
+
+function getAnswer() {
+    return answer;
+}
+
+function ask(value) {
+    answer = prompt(value);
+}
+
 function compile(value) {
     var result = {events:[]};
     var globalRegisterLength = value.globalVariables.length;
