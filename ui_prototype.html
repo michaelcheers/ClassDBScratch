@@ -306,15 +306,25 @@
                             ondragstart: drag
                         });
 
-                    var textList = scratchNode.text;
-                    var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
+					if(scratchNode.args.length === 0)
+					{
+						newNode.appendChild( document.createTextNode(scratchNode.text) );
+						newNode.className = "nativeLeaf";
+					}
+					else
+					{
+						var textList = scratchNode.text;
+						var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
 
-                    for (var Idx = 0; Idx < scratchNode.args.length; ++Idx) {
-                        if (textList[Idx] !== undefined) {
-                            newNode.appendChild(document.createTextNode(textList[Idx]));
-                        }
-                        newNode.appendChild(representScratchNode(scratchNode.args[Idx]));
-                    }
+						for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+						{
+							if(textList[Idx] !== undefined)
+							{
+								newNode.appendChild( document.createTextNode(textList[Idx]) );
+							}
+							newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
+						}
+					}
                     break;
                 case "literal":
                     newNode = merge(document.createElement("INPUT"),
@@ -539,6 +549,19 @@
             cursor: pointer;
             display: inline-block;
         }
+		
+		.nativeLeaf{
+			border:outset;
+			border-color:#66CCFF;
+			background-color:#00A5FF;
+			border-radius:6px;
+			padding-top:1px;
+			padding-bottom:1px;
+			padding-left:4px;
+			padding-right:4px;
+			cursor:pointer;
+			display:inline-block;
+		}
 
         .valueNode {
             border-style: outset;
