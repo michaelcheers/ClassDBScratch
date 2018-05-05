@@ -1,24 +1,32 @@
 // JavaScript source code
-var ClassDBScratch = (function () {
-    function ClassDBScratch() {
-    }
-    ClassDBScratch.TypeError = function (value, expectedType) {
+
+class ClassDBScratch
+{
+    static message: string;
+
+    static TypeError(value: any, expectedType: any)
+    {
         this.message = "Expected " + expectedType + ", got " + typeof (value) + ".";
-    };
-    return ClassDBScratch;
-}());
-ClassDBScratch.Random = (_a = (function () {
-        function class_1() {
-        }
-        class_1.init = function () {
-            var Seed = ((new Date().getTime() * 10000) | 0), ii, mj, mk;
+    }
+
+    
+    static Random = class {
+        static MBIG = 2147483647;
+        static MSEED = 161803398;
+        static MZ = 0;
+        static inext = 0;
+        static inextp = 0;
+        static seedArray = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        static init() {
+            let Seed: number = ((new Date().getTime() * 10000) | 0), ii, mj, mk;
+
             //Initialize our Seed array.
             //This algorithm comes from Numerical Recipes in C (2nd Ed.)
-            var subtraction = (Seed === -2147483648) ? 2147483647 : Math.abs(Seed);
+            let subtraction: number = (Seed === -2147483648) ? 2147483647 : Math.abs(Seed);
             mj = (this.MSEED - subtraction) | 0;
             this.seedArray[55] = mj;
             mk = 1;
-            for (var i = 1; i < 55; i++) {
+            for (var i = 1; i < 55; i++) { //Apparently the range [1..55] is special (Knuth) and so we're wasting the 0'th position.
                 ii = (21 * i) % 55;
                 this.seedArray[ii] = mk;
                 mk = (mj - mk) | 0;
@@ -27,8 +35,8 @@ ClassDBScratch.Random = (_a = (function () {
                 }
                 mj = this.seedArray[ii];
             }
-            for (var k = 1; k < 5; k++) {
-                for (var i1 = 1; i1 < 56; ++i1) {
+            for (let k = 1; k < 5; k++) {
+                for (let i1 = 1; i1 < 56; ++i1) {
                     this.seedArray[i1] = (this.seedArray[i1] - this.seedArray[((1 + (((i1 + 30) | 0)) % 55) | 0)]) | 0;
                     if (this.seedArray[i1] < 0) {
                         this.seedArray[i1] = (this.seedArray[i1] + this.MBIG) | 0;
@@ -38,47 +46,56 @@ ClassDBScratch.Random = (_a = (function () {
             this.inext = 0;
             this.inextp = 21;
             Seed = 1;
-        };
-        class_1.sample = function () {
+        }
+        static sample(): number {
             //Including this division at the end gives us significantly improved
             //random number distribution.
             return (this.internalSample() * (4.6566128752457969E-10));
-        };
-        class_1.internalSample = function () {
+        }
+        static internalSample(): number {
             var retVal;
             var locINext = this.inext;
             var locINextp = this.inextp;
+
             if (((locINext = (locINext + 1) | 0)) >= 56) {
                 locINext = 1;
             }
+
             if (((locINextp = (locINextp + 1) | 0)) >= 56) {
                 locINextp = 1;
             }
+
             retVal = (this.seedArray[locINext] - this.seedArray[locINextp]) | 0;
+
             if (retVal === this.MBIG) {
                 retVal = (retVal - 1) | 0;
             }
+
             if (retVal < 0) {
                 retVal = (retVal + this.MBIG) | 0;
             }
+
             this.seedArray[locINext] = retVal;
+
             this.inext = locINext;
             this.inextp = locINextp;
+
             return retVal;
-        };
-        class_1.next = function () {
+        }
+        static next(): number {
             return this.internalSample();
-        };
-        class_1.next$1 = function (maxValue) {
+        }
+        static next$1(maxValue): number {
             if (maxValue < 0) {
                 throw new Error("'maxValue' must be greater than zero.");
             }
             return (this.sample() * maxValue) | 0;
-        };
-        class_1.next$2 = function (minValue, maxValue) {
+        }
+        static next$2(minValue, maxValue): number {
             if (minValue > maxValue) {
                 throw new Error("'minValue' cannot be greater than maxValue.");
             }
+
             var range = maxValue - minValue;
             if (range <= 2147483647) {
                 return (((this.sample() * range) | 0) + minValue) | 0;
@@ -86,12 +103,13 @@ ClassDBScratch.Random = (_a = (function () {
             else {
                 return ((this.getSampleForLargeRange() * range) + minValue) | 0;
             }
-        };
-        class_1.getSampleForLargeRange = function () {
+        }
+        static getSampleForLargeRange(): number {
             // The distribution of double value returned by Sample 
             // is not distributed well enough for a large range.
             // If we use Sample for a range [Int32.MinValue..Int32.MaxValue)
             // We will end up getting even numbers only.
+
             var result = this.internalSample();
             // Note we can't use addition here. The distribution will be bad if we do that.
             var negative = (this.internalSample() % 2 === 0) ? true : false; // decide the sign based on second sample
@@ -102,40 +120,36 @@ ClassDBScratch.Random = (_a = (function () {
             d += (2147483646); // get a number in range [0 .. 2 * Int32MaxValue - 1)
             d /= 4294967293;
             return d;
-        };
-        class_1.nextDouble = function () {
+        }
+        static nextDouble(): number {
             return this.sample();
-        };
-        class_1.nextBytes = function (buffer) {
+        }
+        static nextBytes(buffer: any) {
             if (buffer == null)
                 throw new Error("Empty buffer.");
             for (var i = 0; i < buffer.length; i = (i + 1) | 0) {
                 buffer[i] = ((this.internalSample() % (256))) & 255;
             }
-        };
-        return class_1;
-    }()),
-    _a.MBIG = 2147483647,
-    _a.MSEED = 161803398,
-    _a.MZ = 0,
-    _a.inext = 0,
-    _a.inextp = 0,
-    _a.seedArray = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    _a);
-(function (ClassDBScratch) {
-    var BlockEvents;
-    (function (BlockEvents) {
-        BlockEvents[BlockEvents["greenflag"] = 0] = "greenflag";
-        BlockEvents[BlockEvents["redflag"] = 1] = "redflag";
-        BlockEvents[BlockEvents["keypress"] = 2] = "keypress";
-        BlockEvents[BlockEvents["keyrelease"] = 3] = "keyrelease";
-        BlockEvents[BlockEvents["click"] = 4] = "click";
-        BlockEvents[BlockEvents["receivemessage"] = 5] = "receivemessage";
-        BlockEvents[BlockEvents["debugOnly"] = 6] = "debugOnly";
-    })(BlockEvents = ClassDBScratch.BlockEvents || (ClassDBScratch.BlockEvents = {}));
-})(ClassDBScratch || (ClassDBScratch = {}));
+        }
+    }
+}
+module ClassDBScratch
+{
+    export enum BlockEvents
+    {
+        greenflag,
+        redflag,
+        keypress,
+        keyrelease,
+        click,
+        receivemessage,
+        debugOnly
+    }
+}
 ClassDBScratch.Random.init();
 ClassDBScratch.TypeError.prototype = Error;
+
+
 function checkTypes(values, expectedTypes) {
     for (var n = 0; n < values.length; n++) {
         var itemValue = values[n];
@@ -144,6 +158,7 @@ function checkTypes(values, expectedTypes) {
             throw new ClassDBScratch.TypeError(itemValue, typeValue);
     }
 }
+
 function $if(condition, consequent, alternate) {
     checkTypes(alternate ? [condition, consequent, alternate] : [condition, consequent], alternate ? ['boolean', 'function', 'function'] : ['boolean', 'function']);
     if (condition)
@@ -151,142 +166,193 @@ function $if(condition, consequent, alternate) {
     else if (alternate)
         alternate();
 }
+
 function and(a, b) {
     checkTypes([a, b], ['boolean', 'boolean']);
     return a && b;
 }
+
 function add(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a + b;
 }
+
 function div(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a / b;
 }
+
 function mul(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a * b;
 }
+
 function not(value) {
     checkTypes([value], ['boolean']);
     return !value;
 }
+
 function or(a, b) {
     checkTypes([a, b], ['boolean', 'boolean']);
     return a || b;
 }
+
 function rand(a, b) {
     return ClassDBScratch.Random.next$2(a, b);
 }
+
 function sub(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a - b;
 }
+
 function numParse(value) {
-    if (value === 'NaN')
-        return NaN;
+    if (value === 'NaN') return NaN;
     var $t;
     for (var n = 0; n < value.length; n++) {
         var item = value[n];
-        if ((item < 48 || item > 57) && item !== 43 && item !== 45 && item !== 101)
-            throw new Error("Number parse is invalid: \"" + value + "\"");
+        if ((item < 48 || item > 57) && item !== 43 && item !== 45 && item !== 101) throw new Error("Number parse is invalid: \"" + value + "\"");
     }
-    if (isNaN($t = parseFloat(value)))
-        throw new Error("Number parse is invalid: \"" + value + "\"");
+    if (isNaN($t = parseFloat(value))) throw new Error("Number parse is invalid: \"" + value + "\"");
     return $t;
 }
+
 function concat(a, b) {
     checkTypes([a, b], ['string', 'string']);
     return a + b;
 }
+
 var localRegisters = [];
 var globalRegisters = [];
+
 function setRegister(local, number, setTo) {
     checkTypes([local, number], ['boolean', 'number']);
     var cRegister = local ? localRegisters : globalRegisters;
     cRegister[number] = setTo;
 }
+
 function getRegister(local, number) {
     checkTypes([local, number], ['boolean', 'number']);
     return (local ? localRegisters : globalRegisters)[number];
 }
+
 function eq(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a === b;
 }
+
 function lt(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a < b;
 }
+
 function gt(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a > b;
 }
+
 function lte(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a <= b;
 }
+
 function gte(a, b) {
     checkTypes([a, b], ['number', 'number']);
     return a >= b;
 }
+
 var answer;
+
 function getAnswer() {
     return answer;
 }
+
 function ask(value) {
     answer = prompt(value);
 }
+
+interface CompileResult
+{
+    events: Array<ProgramEvent>;
+    globalVariables: number;
+}
+
+interface ProgramEvent
+{
+    id: number;
+    data: any;
+    body: BlockBody;
+}
+
+interface BlockBody
+{
+    body: Block[];
+    variables: number;
+}
+
+interface Block
+{
+
+}
+
 function compile(value) {
-    var result = { events: [], globalVariables: undefined };
+    let result: CompileResult = {events:[], globalVariables: undefined};
     result.events = [];
-    var globalRegisterLength = value.globalVariables.length;
+    let globalRegisterLength = value.globalVariables.length;
     result.globalVariables = globalRegisterLength;
-    for (var _i = 0, _a = value.events; _i < _a.length; _i++) {
-        var item = _a[_i];
-        var eventName = item.name;
-        var eventData = item.data;
-        var eventBody = compileBlocks(item.body, value);
-        var eventNumber = ClassDBScratch.BlockEvents[eventName];
-        result.events.push({
-            id: eventNumber,
-            data: eventData,
-            body: eventBody
-        });
+    for (var item of value.events)
+    {
+        let eventName: string = item.name;
+        let eventData = item.data;
+        let eventBody = compileBlocks(item.body, value);
+        let eventNumber: number = ClassDBScratch.BlockEvents[eventName];
+        result.events.push(
+            {
+                id: eventNumber,
+                data: eventData,
+                body: eventBody
+            });
     }
     return result;
 }
-function isFunction(value) {
+
+function isFunction (value) {
     return typeof (value) === "function";
 }
-function arrayInit(size, value) {
-    var arr = new Array(size), isFn = isFunction(value);
+
+function arrayInit (size, value) {
+    var arr = new Array(size),
+        isFn = isFunction(value);
+
     for (var i = 0; i < size; i++) {
         arr[i] = isFn ? value() : value;
     }
+
     return arr;
 }
-function compileBlocks(value, program) {
+
+function compileBlocks(value, program): BlockBody {
     var resultArray = [];
-    var scope = { declaredVariables: [] };
-    for (var _i = 0, value_1 = value; _i < value_1.length; _i++) {
-        var item = value_1[_i];
+    var scope = {declaredVariables:[]};
+    for (var item of value)
         resultArray.push(compileBlock(item, program, scope));
-    }
     return {
-        body: resultArray,
-        variables: scope.declaredVariables.length
+    	body:resultArray,
+    	variables:scope.declaredVariables.length
     };
 }
+
 function literalise(v) {
     return {
         literal: v,
-        type: 'literal'
-    };
+        type:'literal'
+    }
 }
+
 function compileBlock(value, program, scope) {
     var $t;
-    switch (value.type) {
+    switch (value.type)
+    {
         case 'vardecl':
             return {
                 "type": "native",
@@ -303,7 +369,7 @@ function compileBlock(value, program, scope) {
             return {
                 "type": "native",
                 "native": setRegister,
-                "args": [$t = value.local, ($t ? scope.declaredVariables : program.globalVariables).indexOf(value.name), value.setTo].map(literalise)
+                "args":[$t = value.local, ($t ? scope.declaredVariables : program.globalVariables).indexOf(value.name), value.setTo].map(literalise)
             };
         case 'native':
             var valueCopy = merge({}, value);
@@ -319,7 +385,8 @@ function compileBlock(value, program, scope) {
             return value;
     }
 }
-function isArray(obj) {
+
+function isArray (obj) {
     return Object.prototype.toString.call(obj) in {
         "[object Array]": 1,
         "[object Uint8Array]": 1,
@@ -332,59 +399,67 @@ function isArray(obj) {
         "[object Float64Array]": 1
     };
 }
-function merge(to, from, elemFactory) {
+
+function merge (to, from, elemFactory?: any) {
     // Maps instance of plain JS value or Object into Bridge object. 
     // Used for deserialization. Proper deserialization requires reflection that is currently not supported in Bridge. 
     // It currently is only capable to deserialize:
     // -instance of single class or primitive
     // -array of primitives 
     // -array of single class           
-    var key, i, value, toValue, fn;
+
+    var key,
+        i,
+        value,
+        toValue,
+        fn;
+
     if (isArray(from) && isFunction(to.add || to.push)) {
         fn = isArray(to) ? to.push : to.add;
+
         for (i = 0; i < from.length; i++) {
             var item = from[i];
+
             if (!isArray(item)) {
                 item = [typeof elemFactory === 'undefined' ? item : merge(elemFactory(), item)];
             }
+
             fn.apply(to, item);
         }
-    }
-    else {
+    } else {
         for (key in from) {
             value = from[key];
+
             if (typeof to[key] === "function") {
                 if (key.match(/^\s*get[A-Z]/)) {
                     merge(to[key](), value);
-                }
-                else {
+                } else {
                     to[key](value);
                 }
-            }
-            else {
+            } else {
                 var setter = "set" + key.charAt(0).toUpperCase() + key.slice(1);
+
                 if (typeof to[setter] === "function" && typeof value !== "function") {
                     to[setter](value);
-                }
-                else if (value && value.constructor === Object && to[key]) {
+                } else if (value && value.constructor === Object && to[key]) {
                     toValue = to[key];
                     merge(toValue, value);
-                }
-                else {
+                } else {
                     to[key] = value;
                 }
             }
         }
     }
+
     return to;
 }
+
 function run(value) {
     switch (value.type) {
         case "literal":
             return value.literal;
         case "native":
-            if (value.run === void 0)
-                value.run = true;
+            if (value.run === void 0) value.run = true;
             var tempArgs = value.run ? value.args.map(function (v) {
                 return run(v);
             }) : value.args;
@@ -398,32 +473,33 @@ function run(value) {
             throw new Error("Unknown node type: " + value.type);
     }
 }
+
 function runBody(value) {
     var oldLocalRegisters = localRegisters.slice(0);
     localRegisters = arrayInit(value.variables, null);
     value.body.forEach(run);
     localRegisters = oldLocalRegisters;
 }
+
 function runProgram(value) {
     globalRegisters = arrayInit(value.globalVariables, null);
     var events = value.events;
-    for (var _i = 0, events_1 = events; _i < events_1.length; _i++) {
-        var rItem = events_1[_i];
-        (function (item) {
-            switch (item.id) {
-                case ClassDBScratch.BlockEvents.greenflag:
-                    runBody(item.body);
-                    break;
-                case ClassDBScratch.BlockEvents.keypress:
+    for (var rItem of events) {
+       (function (item) {
+           switch (item.id) {
+               case ClassDBScratch.BlockEvents.greenflag:
+                   runBody(item.body);
+                   break;
+               case ClassDBScratch.BlockEvents.keypress:
                     {
-                        var keyDown = function () {
+                        let keyDown = function () {
                             var itemBody = item.body;
                             var itemData0 = item.data[0];
                             document.body.addEventListener('keydown', function (event) {
                                 if (itemData0 === -1 || event.keyCode === itemData0)
                                     runBody(itemBody);
                             });
-                        };
+                        }
                         if (document.body)
                             keyDown();
                         else
@@ -432,17 +508,17 @@ function runProgram(value) {
                     }
                 case ClassDBScratch.BlockEvents.keyrelease:
                     {
-                        var keyDown_1 = function (itemBody, itemData0) {
+                        let keyDown = function (itemBody, itemData0) {
                             document.body.addEventListener('keyup', function (event) {
                                 if (itemData0 === -1 || event.keyCode === itemData0)
                                     runBody(itemBody);
                             });
-                        };
+                        }
                         if (document.body)
-                            keyDown_1(item.body, item.data[0]);
+                            keyDown(item.body, item.data[0]);
                         else
                             addOnLoad(function () {
-                                keyDown_1(item.body, item.data[0]);
+                                keyDown(item.body, item.data[0]);
                             });
                         break;
                     }
@@ -460,7 +536,9 @@ function runProgram(value) {
         })(rItem);
     }
 }
+
 var onLoads = [];
+
 function addOnLoad(value) {
     onLoads.push(value);
     if (!window.onload)
@@ -470,5 +548,3 @@ function addOnLoad(value) {
             });
         };
 }
-var _a;
-//# sourceMappingURL=engine.js.map
