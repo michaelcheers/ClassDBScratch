@@ -200,11 +200,41 @@
                 native: getAnswer,
                 args: [],
                 text: "answer"
-            }]
-        };
+            },
+            {
+                type: "native",
+                native: function(entry, value){ entry.value = value; },
+                text: ["set ", " to "],
+				lvalue: [true, false],
+                args: [
+                    createEmptyVariableNode(),
+					createLiteralNode(0),
+                ]
+            }
+		]};
+		
+		function ScopeEntry(name, value)
+		{
+			this.name = name;
+			this._value = value;
+		}
+		
+		ScopeEntry.prototype = {
+			get value() {
+				return this._value;
+			},
+			
+			set value(v) {
+				this._value = v;
+				if(this.domNode !== undefined)
+				{
+					this.domNode.textBox.value = v;
+				}
+			},
+		};
 		
 		var localscope = [
-			{name:"length", type:"int", value:15}
+			new ScopeEntry("length", 15)
 		];
 
         function addParents(tree)
@@ -276,12 +306,12 @@
         function onload_init()
 		{
             var scratchArea = document.getElementById("scratch_area");
-            displayWholePage(testDoc, scratchArea);
+            displayWholePage(testDoc, scratchArea, false);
             scratchArea.ondrop = placeDrop;
             scratchArea.ondragover = allowDrop;
 
             var paletteArea = document.getElementById("palette_area");
-            displayWholePage(paletteEntries, paletteArea);
+            displayWholePage(paletteEntries, paletteArea, true);
             paletteArea.ondrop = deleteDrop;
             paletteArea.ondragover = allowDrop;
 			
@@ -289,12 +319,12 @@
 			displayData(localscope, dataArea);
         }
 
-        function displayWholePage(node, rootElement)
+        function displayWholePage(node, rootElement, isTemplatePage)
 		{
             addParents(node);
 
             removeAllChildren(rootElement);
-            rootElement.appendChild(representScratchNode(node));
+            rootElement.appendChild(representScratchNode(node, isTemplatePage));
         }
 		
 		function displayData(scope, rootElement)
@@ -314,7 +344,7 @@
             }
         }
 
-        function representScratchNode(scratchNode)
+        function representScratchNode(scratchNode, isTemplate)
 		{
             var newNode;
             switch (scratchNode.type)
@@ -324,7 +354,7 @@
                     for (var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 					{
                         var containerDiv = document.createElement("DIV");
-                        containerDiv.appendChild(representScratchNode(scratchNode.args[Idx]));
+                        containerDiv.appendChild(representScratchNode(scratchNode.args[Idx], isTemplate));
                         newNode.appendChild(containerDiv);
                     }
                     break;
@@ -334,7 +364,8 @@
                         {
                             className: "nativeNode",
                             draggable: true,
-                            ondragstart: drag
+                            ondragstart: drag,
+							isTemplate: isTemplate
                         });
 
 					if(scratchNode.args.length === 0)
@@ -353,7 +384,7 @@
 							{
 								newNode.appendChild( document.createTextNode(textList[Idx]) );
 							}
-							newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
+							newNode.appendChild( representScratchNode(scratchNode.args[Idx], isTemplate) );
 						}
 					}
                     break;
@@ -364,9 +395,10 @@
                             className: 'numberField',
                             value: scratchNode.literal,
                             size: 3,
+							isTemplate: isTemplate,
                             onchange: function () {
                                 var $t;
-                                this.scratchNode.literal = (($t = numParse(this.value)) ? $t : this.value);
+                                this.scratchNode.literal = (($t = parseFloat(this.value)) ? $t : this.value);
                                 this.size = this.value.length > 6 ? 20 : 3;
                             },
                             onkeyup: function () {
@@ -374,6 +406,14 @@
                             }
                         });
                     break;
+					
+				case "variableSlot":
+                    newNode = merge(document.createElement("DIV"),
+						{
+							className: 'variableField',
+							isTemplate: isTemplate,
+						});
+					break;
             }
 
             newNode.scratchNode = scratchNode;
@@ -392,8 +432,10 @@
 						type: "native",
 						scopeEntry: scopeEntry,
 						text: scopeEntry.name,
+						isTemplate: true,
 						args:[],
-						"native": function(scopeEntry){ return function(){ return scopeEntry.value; }}(scopeEntry),
+						"native": function(){ return scopeEntry.value; },
+						"nativeLValue": function(){ return scopeEntry; },
 					}
 				});
 
@@ -417,6 +459,8 @@
 				});
 
 			newNode.appendChild(textBox);
+			newNode.textBox = textBox;
+			scopeEntry.domNode = newNode;
 			return newNode;
 		}
 
@@ -448,6 +492,7 @@
                     return typeof v !== 'object' ? v : cloneNode(v);
                 }) : value;
             }
+			result.isTemplate = false;
 
             return result;
         }
@@ -463,7 +508,7 @@
                 var targetNode = ev.target.scratchNode;
                 var draggingRoot = getRoot(draggingNode);
 
-                if (draggingRoot === paletteEntries)
+                if (draggingNode.isTemplate)
 				{
                     // dragged a palette entry, clone it
                     draggingNode = cloneNode(draggingNode);
@@ -487,10 +532,10 @@
 
                     var targetArgIdx = getParentArgIndex(targetNode);
 
-                    var replacedNode = targetNode.parent.args[targetArgIdx];
+                    var replacedNode = targetNode.parent.args[targetArgIdx];					
                     targetNode.parent.args[targetArgIdx] = draggingNode;
 
-                    if (replacedNode !== undefined && replacedNode.type !== "literal")
+                    if (replacedNode !== undefined && replacedNode.type !== "literal" && replacedNode.type !== "variableSlot")
 					{
                         testDoc.args.push(replacedNode);
                     }
@@ -512,7 +557,11 @@
 			{
                 node.parent.args.splice(draggedArgIdx, 1);
             }
-            else
+            else if(node.parent.lvalue !== undefined && node.parent.lvalue[draggedArgIdx])
+			{
+                node.parent.args[draggedArgIdx] = createEmptyVariableNode();
+			}
+			else
 			{
                 node.parent.args[draggedArgIdx] = createLiteralNode(0);
             }
@@ -532,6 +581,14 @@
             return {
                 type: "literal",
                 literal: value
+            };
+        }
+
+		function createEmptyVariableNode()
+		{
+            return {
+                type: "variableSlot",
+                literal: ""
             };
         }
 
@@ -718,7 +775,22 @@
             padding-right: 4px;
             display: inline-block;
         }
-    </style>
+
+        .variableField {
+            background-color: #CCAAAA;
+            border: inset;
+            border-width: 1px;
+            border-radius: 2px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            padding-left: 4px;
+            padding-right: 4px;
+			vertical-align: bottom;
+			width:30px;
+			height:15px;
+            display: inline-block;
+        }
+	</style>
 </head>
 <body onload="onload_init()">
     <table style="width:100%; height:100%">

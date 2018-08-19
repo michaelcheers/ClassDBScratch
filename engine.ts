@@ -349,6 +349,13 @@ function literalise(v) {
     }
 }
 
+function compileBlockAsLValue(value, program, scope)
+{
+	var valueCopy = merge({}, value);
+	valueCopy.native = valueCopy.nativeLValue;
+	return valueCopy;
+}
+
 function compileBlock(value, program, scope) {
     var $t;
     switch (value.type)
@@ -373,9 +380,20 @@ function compileBlock(value, program, scope) {
             };
         case 'native':
             var valueCopy = merge({}, value);
-            valueCopy.args = valueCopy.args.map(function (v) { return compileBlock(v, program, scope); });
+			valueCopy.args = [];
+			for(var Idx = 0; Idx < value.args.length; ++Idx)
+			{
+				if(value.lvalue !== undefined && value.lvalue[Idx])
+				{
+					valueCopy.args[Idx] = compileBlockAsLValue(value.args[Idx], program, scope);
+				}
+				else
+				{
+					valueCopy.args[Idx] = compileBlock(value.args[Idx], program, scope);
+				}
+			}
             return valueCopy;
-        case 'ifStatement':
+		case 'ifStatement':
             return {
                 type: 'native',
                 native: $if,
