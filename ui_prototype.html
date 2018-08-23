@@ -11,17 +11,18 @@
             args: [
             {
                 type: "native",
-                text: "alert ",
+                name: "alert ",
                 "native": alert,
+				hasSideEffects:true,
                 args: [
                 {
                     type: "native",
-                    text: ["", " + "],
+                    name: ["", " + "],
                     "native": add,
                     args: [
                         {
                             type: "native",
-                            text: ["", " + "],
+                            name: ["", " + "],
                             "native": add,
                             args: [
                                 {
@@ -36,7 +37,7 @@
                         },
                         {
                             type: "native",
-                            text: ["", " + "],
+                            name: ["", " + "],
                             "native": add,
                             args: [
                                 {
@@ -59,14 +60,94 @@
             type: "document",
             args: [
             {
-                type: "native",
-                text: "alert ",
+                type: "declareBlockTemplate",
+                name: ["declare ", " returns "],
+				run: false,
+                args: [
+					{
+                        type: "functionDeclarePlaceholder",
+                        name: "function",
+						args:[
+							{
+								type: "varDeclarePlaceholder",
+								name: "arg",
+								local: true,
+							},
+						],
+                    },
+					{
+						type: "literal",
+						literal: ""
+					},
+                ]
+            },
+			{
+                type: "declareBlockTemplate",
+                name: ["declare ", " = "],
+				run: false,
+                args: [
+					{
+						type: "varDeclarePlaceholder",
+						name: "constant",
+						local: true,
+						mutable:false,
+                    },
+					{
+						type: "literal",
+						literal: ""
+					},
+                ]
+            },
+			{
+                type: "declareBlockTemplate",
+                name: ["declare ", " = "],
+				run: false,
+                args: [
+					{
+						type: "varDeclarePlaceholder",
+						name: "variable",
+						local: true,
+						mutable:true,
+                    },
+					{
+						type: "literal",
+						literal: ""
+					},
+                ]
+            },
+            {
+                type: "nativeTemplate",
+                name: "alert ",
                 "native": alert,
+				hasSideEffects:true,
                 args: [{ type: "literal", literal: "Hello" }]
             },
             {
-                type: "native",
-                text: ["", " + "],
+                type: "nativeTemplate",
+                native: function(entry, value){ entry.scope[entry.key] = value; },
+                name: ["set ", " = "],
+				lvalue: [true, false],
+				hasSideEffects:true,
+				args: [
+                    createEmptyVariableNode(),
+					createLiteralNode(0),
+                ]
+            },
+			{
+                type: "nativeTemplate",
+                native: ask,
+                name: ["ask ", " and wait"],
+				hasSideEffects: true,
+                args: [
+                    {
+                        type: "literal",
+                        literal: "What's your name?"
+                    }
+                ]
+            },
+            {
+                type: "nativeTemplate",
+                name: ["", " + "],
                 "native": add,
                 args: [
                     {
@@ -80,8 +161,8 @@
                 ]
             },
             {
-                type: "native",
-                text: ["", " - "],
+                type: "nativeTemplate",
+                name: ["", " - "],
                 "native": sub,
                 args: [
                     {
@@ -95,8 +176,8 @@
                 ]
             },
             {
-                type: "native",
-                text: ["", " * "],
+                type: "nativeTemplate",
+                name: ["", " * "],
                 "native": mul,
                 args: [
                     {
@@ -110,8 +191,8 @@
                 ]
             },
             {
-                type: "native",
-                text: ["", " / "],
+                type: "nativeTemplate",
+                name: ["", " / "],
                 "native": div,
                 args: [
                     {
@@ -125,8 +206,8 @@
                 ]
             },
             {
-                type: "native",
-                text: ["pick random from ", " to "],
+                type: "nativeTemplate",
+                name: ["pick random from ", " to "],
                 "native": rand,
                 args: [
                     {
@@ -140,8 +221,8 @@
                 ]
             },
             {
-                type: "native",
-                text: ["", " < "],
+                type: "nativeTemplate",
+                name: ["", " < "],
                 "native": lt,
                 args: [
                     {
@@ -155,8 +236,8 @@
                 ]
             },
             {
-                type: "native",
-                text: ["", " = "],
+                type: "nativeTemplate",
+                name: ["", " = "],
                 native: eq,
                 args: [
                     {
@@ -170,8 +251,8 @@
                 ]
             },
             {
-                type: "native",
-                text: ["", " > "],
+                type: "nativeTemplate",
+                name: ["", " > "],
                 "native": gt,
                 args: [
                     {
@@ -184,30 +265,14 @@
                     }
                 ]
             },
-            {
-                type: "native",
-                native: ask,
-                text: ["ask ", " and wait"],
-                args: [
-                    {
-                        type: "literal",
-                        literal: "What's your name?"
-                    }
-                ]
-            },
-            {
-                type: "native",
-                native: getAnswer,
-                args: [],
-                text: "answer"
-            },
-            {
-                type: "native",
-                native: function(entry, value){ entry.value = value; },
-                text: ["set ", " to "],
-				lvalue: [true, false],
-                args: [
-                    createEmptyVariableNode(),
+			{
+                type: "nativeTemplate",
+                native: function(cond, then, els){ if(run(cond)){ return run(then)} else { return run(els)} },
+                name: ["if ", " then ", " else "],
+				run: false,
+				args: [
+					createLiteralNode(0),
+					createLiteralNode(0),
 					createLiteralNode(0),
                 ]
             }
@@ -306,12 +371,12 @@
         function onload_init()
 		{
             var scratchArea = document.getElementById("scratch_area");
-            displayWholePage(testDoc, scratchArea, false);
+			displayScratchArea();
             scratchArea.ondrop = placeDrop;
             scratchArea.ondragover = allowDrop;
 
             var paletteArea = document.getElementById("palette_area");
-            displayWholePage(paletteEntries, paletteArea, true);
+            displayWholePage(paletteEntries, paletteArea);
             paletteArea.ondrop = deleteDrop;
             paletteArea.ondragover = allowDrop;
 			
@@ -319,12 +384,18 @@
 			displayData(localscope, dataArea);
         }
 
-        function displayWholePage(node, rootElement, isTemplatePage)
+		function displayScratchArea()
+		{
+			var scratchArea = document.getElementById("scratch_area");
+            displayWholePage(testDoc, scratchArea); // redisplay
+		}
+		
+        function displayWholePage(node, rootElement)
 		{
             addParents(node);
 
             removeAllChildren(rootElement);
-            rootElement.appendChild(representScratchNode(node, isTemplatePage));
+            rootElement.appendChild(representScratchNode(node));
         }
 		
 		function displayData(scope, rootElement)
@@ -344,58 +415,83 @@
             }
         }
 
-        function representScratchNode(scratchNode, isTemplate)
+        function representScratchNode(scratchNode)
 		{
-            var newNode;
+            var newElement;
             switch (scratchNode.type)
 			{
                 case "document":
-                    newNode = document.createElement("DIV");
+                    newElement = document.createElement("DIV");
                     for (var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 					{
                         var containerDiv = document.createElement("DIV");
-                        containerDiv.appendChild(representScratchNode(scratchNode.args[Idx], isTemplate));
-                        newNode.appendChild(containerDiv);
+                        containerDiv.appendChild(representScratchNode(scratchNode.args[Idx]));
+                        newElement.appendChild(containerDiv);
                     }
                     break;
 
                 case "native":
-                    newNode = merge(document.createElement("DIV"),
+				case "nativeTemplate":
+				case "functionCall":
+				case "getvar":
+				case "refvar":
+				case "declareBlock":
+				case "declareBlockTemplate":
+                    newElement = merge(document.createElement("DIV"),
                         {
-                            className: "nativeNode",
                             draggable: true,
-                            ondragstart: drag,
-							isTemplate: isTemplate
+                            ondragstart: drag
                         });
-
-					if(scratchNode.args.length === 0)
+						
+					switch(scratchNode.type)
 					{
-						newNode.appendChild( document.createTextNode(scratchNode.text) );
-						newNode.className = (scratchNode.scopeEntry !== undefined)?"scopeNode":"nativeLeaf";
+						case "declareBlock":
+						case "declareBlockTemplate":
+							newElement.className = "declareBlock";
+							break;
+						case "refvar":
+							newElement.className = "mutableNativeNode";
+							break;
+						case "getvar":
+							newElement.className = "nativeLeaf";
+						default:
+							if(scratchNode.hasSideEffects)
+								newElement.className = "commandNode";
+							else if(scratchNode.args === undefined || scratchNode.args.length === 0)
+								newElement.className = "nativeLeaf";
+							else
+								newElement.className = "nativeNode";
+							break;
 					}
-					else
-					{
-						var textList = scratchNode.text;
-						var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
+						
+					var template = scratchNode;
+					if(scratchNode.template !== undefined)
+						template = scratchNode.template;
 
+					var textList = template.name;
+					var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
+
+					newElement.appendChild( document.createTextNode(textList[0]) );
+
+					if(scratchNode.args !== undefined && scratchNode.args.length > 0)
+					{
 						for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 						{
-							if(textList[Idx] !== undefined)
+							newElement.appendChild( representScratchNode(scratchNode.args[Idx]) );
+							if(textList[Idx+1] !== undefined)
 							{
-								newNode.appendChild( document.createTextNode(textList[Idx]) );
+								newElement.appendChild( document.createTextNode(textList[Idx+1]) );
 							}
-							newNode.appendChild( representScratchNode(scratchNode.args[Idx], isTemplate) );
 						}
 					}
                     break;
                 case "literal":
-                    newNode = merge(document.createElement("INPUT"),
+                    newElement = merge(document.createElement("INPUT"),
                         {
                             type: 'text',
                             className: 'numberField',
                             value: scratchNode.literal,
                             size: 3,
-							isTemplate: isTemplate,
                             onchange: function () {
                                 var $t;
                                 this.scratchNode.literal = (($t = parseFloat(this.value)) ? $t : this.value);
@@ -408,38 +504,104 @@
                     break;
 					
 				case "variableSlot":
-                    newNode = merge(document.createElement("DIV"),
+                    newElement = merge(document.createElement("DIV"),
 						{
 							className: 'variableField',
-							isTemplate: isTemplate,
 						});
+					break;
+
+				case "functionDeclarePlaceholder":
+                    newElement = merge(document.createElement("DIV"),
+						{
+							className: 'templateField',
+						});
+						
+					newElement.appendChild( document.createTextNode(scratchNode.name) );
+					break;
+					
+				case "varDeclarePlaceholder":
+                    newElement = merge(document.createElement("DIV"),
+						{
+							className: scratchNode.mutable?'mutableTemplateFieldLeaf':'templateFieldLeaf',
+						});
+						
+					newElement.appendChild( document.createTextNode(scratchNode.name) );
+					break;
+					
+				case "functionDeclare":
+				case "varDeclare":
+					if(g_expandedNode === scratchNode)
+					{
+						newElement = merge(document.createElement("DIV"),
+							{
+								className: 'templateField',
+							});
+						var nameDiv = document.createElement("DIV");
+						nameDiv.appendChild( document.createTextNode(scratchNode.name) );
+						newElement.appendChild(nameDiv);
+						
+						if(scratchNode.args !== undefined)
+						{
+							for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+							{
+								var argsDiv = document.createElement("DIV");
+								argsDiv.style.paddingLeft = 10;
+								newElement.appendChild(argsDiv);
+								
+								argsDiv.appendChild( representScratchNode(scratchNode.args[Idx]) );
+							}
+						}
+					}
+					else
+					{
+						newElement = representDeclarationNode(scratchNode);
+					}
 					break;
             }
 
-            newNode.scratchNode = scratchNode;
-            return newNode;
+			switch(scratchNode.type)
+			{
+				case "nativeTemplate":
+				case "functionDeclare":
+				case "declareBlockTemplate":
+					newElement.isTemplate = true;
+					break;
+				case "varDeclare":
+					if(g_expandedNode === scratchNode.parent)
+					{
+						newElement.isEditableTemplate = true;
+					}
+					else
+					{
+						newElement.isTemplate = true;
+					}
+					break;
+				default:
+					break;
+			}
+            newElement.scratchNode = scratchNode;
+            return newElement;
         }
 		
 		function representScopeEntry(scopeEntry)
 		{
-			var newNode = merge(document.createElement("DIV"),
+			var newElement = merge(document.createElement("DIV"),
 				{
 					className: "scopeEntry",
 					draggable: true,
 					ondragstart: drag,
 					scopeEntry: scopeEntry,
 					scratchNode: {
-						type: "native",
+						type: "nativeTemplate",
 						scopeEntry: scopeEntry,
 						text: scopeEntry.name,
-						isTemplate: true,
 						args:[],
 						"native": function(){ return scopeEntry.value; },
-						"nativeLValue": function(){ return scopeEntry; },
+						"nativeLValue": function(){ return { scope:scopeEntry, key:"value" }; },
 					}
 				});
 
-			newNode.appendChild( document.createTextNode(scopeEntry.name) );
+			newElement.appendChild( document.createTextNode(scopeEntry.name) );
 				
 			var textBox = merge(document.createElement("INPUT"),
 				{
@@ -458,13 +620,93 @@
 					}
 				});
 
-			newNode.appendChild(textBox);
-			newNode.textBox = textBox;
-			scopeEntry.domNode = newNode;
+			newElement.appendChild(textBox);
+			newElement.textBox = textBox;
+			scopeEntry.domNode = newElement;
+			return newElement;
+		}
+		
+		function representDeclarationNode(scratchNode)
+		{
+			var newNode;
+			var editableSpan = merge(document.createElement("SPAN"),
+				{
+					contentEditable: false,
+					scratchNode: scratchNode,
+					onblur: function()
+					{
+						this.contentEditable = false;
+					},
+					onclick: function()
+					{
+						if(this.contentEditable === "true")
+						{
+							this.contentEditable = false;
+							window.getSelection().removeAllRanges();
+						}
+						else
+						{
+							this.contentEditable = true;
+							this.focus();
+							selectElementContents(this);
+						}
+					},
+					oninput: function()
+					{
+						this.scratchNode.name = this.innerText;
+					}
+				});
+			newNode = merge(document.createElement("DIV"),
+				{
+					className: 'templateField',
+					draggable: true,
+					ondragstart: drag,
+				});
+			newNode.appendChild(editableSpan);
+			editableSpan.appendChild( document.createTextNode(scratchNode.name) );
+			
+			if(scratchNode.args === undefined || scratchNode.args.length === 0)
+			{
+				newNode.className = scratchNode.mutable?"mutableTemplateFieldLeaf": "templateFieldLeaf";
+			}
+			else if(scratchNode.args !== undefined)
+			{
+				for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+				{
+					newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
+				}
+			}
+			
+			if(scratchNode.type === "functionDeclare")
+			{	
+				var contextMenuSpan = merge(document.createElement("SPAN"),
+				{
+					onclick:function()
+					{
+						showContextMenu(this, [
+							{ text:"Add Parameter", action:function(){
+								scratchNode.args.push({
+									type:"varDeclare",
+									name:"arg"+(scratchNode.args.length+1),
+									local:true
+								});
+								displayScratchArea();
+							} },
+							{ text:"Edit Parameters", action:function(){
+								g_expandedNode = scratchNode;
+								displayScratchArea();
+							} },
+						]);
+					},
+				});
+				contextMenuSpan.appendChild( document.createTextNode("▼") );
+				newNode.appendChild(contextMenuSpan);
+			}
 			return newNode;
 		}
 
         var g_draggingElement;
+		var g_expandedNode;
 
         function drag(ev)
 		{
@@ -479,21 +721,62 @@
             return node;
         }
 
-        function cloneNode(node)
+        function cloneNode(node, resolvingParent)
 		{
             checkTypes([node], ['object']);
             var result = {};
-            for (var key in node)
+			var resolvingTemplate = false;
+            
+			switch(node.type)
 			{
-                if (key === "parent")
+				case "nativeTemplate":
+					result.type = "native";
+					break;
+				case "functionDeclarePlaceholder":
+					result.type = "functionDeclare";
+					break;
+				case "functionDeclare":
+					result.type = "functionCall";
+					result.template = node;
+					resolvingTemplate = true;
+					break;
+				case "declareBlockTemplate":
+					result.type = "declareBlock";
+					break;
+				case "varDeclarePlaceholder":
+					result.type = "varDeclare";
+					break;
+				case "varDeclare":
+					if(resolvingParent) //is this a parameter in a function declaration, and we're dragging out a function call from it?
+					{
+						return { type:"literal", literal:"" };
+					}
+					else if(node.mutable)
+					{
+						result.type = "refvar";
+						result.template = node;
+					}
+					else
+					{
+						result.type = "getvar";
+						result.template = node;
+					}
+					break;
+				default:
+					result.type = node.type;
+					break;
+			}
+
+			for (var key in node)
+			{
+                if (key === "parent" || key === "type")
                     continue;
                 var value = node[key];
                 result[key] = isArray(value) ? value.map(function (v) {
-                    return typeof v !== 'object' ? v : cloneNode(v);
+                    return typeof v !== 'object' ? v : cloneNode(v, resolvingTemplate);
                 }) : value;
             }
-			result.isTemplate = false;
-
+			
             return result;
         }
 
@@ -507,11 +790,63 @@
                 var draggingNode = g_draggingElement.scratchNode;
                 var targetNode = ev.target.scratchNode;
                 var draggingRoot = getRoot(draggingNode);
-
-                if (draggingNode.isTemplate)
+				
+				if(g_draggingElement.isEditableTemplate)
 				{
-                    // dragged a palette entry, clone it
-                    draggingNode = cloneNode(draggingNode);
+					// we're reordering or removing function parameters
+					if(targetNode === undefined)
+					{
+						var draggedArgIdx = getParentArgIndex(draggingNode);
+						draggingNode.parent.args.splice(draggedArgIdx, 1);
+						displayScratchArea();
+					}
+					else if(targetNode.parent === draggingNode.parent)
+					{
+						var draggedArgIdx = getParentArgIndex(draggingNode);
+						draggingNode.parent.args.splice(draggedArgIdx, 1);
+						var targetArgIdx = getParentArgIndex(targetNode);
+						targetNode.parent.args.splice(targetArgIdx, 0, draggingNode);
+						displayScratchArea();
+					}
+					else if(targetNode === draggingNode.parent)
+					{
+						var draggedArgIdx = getParentArgIndex(draggingNode);
+						draggingNode.parent.args.splice(draggedArgIdx, 1);
+						targetNode.parent.args.push(draggingNode);
+						displayScratchArea();
+					}
+					return;
+				}
+				
+				switch(targetNode !== undefined ? targetNode.type: "")
+				{
+					// can't drag anything onto templates
+					case "nativeTemplate":
+					case "functionDeclare":
+					case "functionDeclarePlaceholder":
+					case "declareBlockTemplate":
+					case "varDeclarePlaceholder":
+						return;
+					case "varDeclare":
+						if(draggingNode.type === "varDeclare")
+						{
+							if(targetNode.parent === draggingNode.parent)
+							{
+								var draggedArgIdx = getParentArgIndex(draggingNode);
+								draggingNode.parent.args.splice(draggedArgIdx, 1);
+								var targetArgIdx = getParentArgIndex(targetNode);
+								targetNode.parent.args.splice(targetArgIdx, 0, draggingNode);
+								displayScratchArea();
+								return;
+							}
+						}
+						return;
+				}
+
+				if(g_draggingElement.isTemplate)
+				{
+					// dragged a template, so clone it
+					draggingNode = cloneNode(draggingNode);
                 }
 
                 if (targetNode === undefined)
@@ -522,8 +857,7 @@
                         dragAwayNode(draggingNode);
 
                         testDoc.args.push(draggingNode);
-                        var scratchArea = document.getElementById("scratch_area");
-                        displayWholePage(testDoc, scratchArea); // redisplay
+						displayScratchArea();
                     }
                 }
                 else if (targetNode.parent !== undefined && !isAncestorOfNode(draggingNode, targetNode))
@@ -539,19 +873,36 @@
 					{
                         testDoc.args.push(replacedNode);
                     }
-                    var scratchArea = document.getElementById("scratch_area");
-                    displayWholePage(testDoc, scratchArea); // redisplay
+					displayScratchArea();
                 }
 
                 g_draggingElement = undefined;
             }
         }
+	
+        function dragAwayElement(element)
+		{
+			var draggingNode = element.scratchNode;
+			if(element.isTemplate)
+			{
+				if(draggingNode.type === "varDeclare" && draggingNode.parent.type === "functionDeclare")
+				{
+					// remove function argument
+					var draggedArgIdx = getParentArgIndex(draggingNode);
+					draggingNode.parent.args.splice(draggedArgIdx, 1);
+					displayScratchArea();
+				}
+				return;
+			}
+				
+			dragAwayNode(element.scratchNode);
+		}
 
         function dragAwayNode(node)
 		{
             if (node.parent === undefined)
                 return;
-
+			
             var draggedArgIdx = getParentArgIndex(node);
             if (node.parent === testDoc)
 			{
@@ -606,11 +957,8 @@
 
         function deleteDrop(ev)
 		{
-            var draggingNode = g_draggingElement.scratchNode;
-            dragAwayNode(draggingNode);
-
-            var scratchArea = document.getElementById("scratch_area");
-            displayWholePage(testDoc, scratchArea); // redisplay
+            dragAwayElement(g_draggingElement);
+			displayScratchArea();
         }
 
         function onclick_Run()
@@ -635,7 +983,50 @@
 			var dataArea = document.getElementById("data_area");
 			displayData(localscope, dataArea);
 		}
-
+		
+		function selectElementContents(el)
+		{
+			var range = document.createRange();
+			range.selectNodeContents(el);
+			var sel = window.getSelection();
+			sel.removeAllRanges();
+			sel.addRange(range);
+		}
+		
+		function showContextMenu(fromElement, items)
+		{
+			var contextMenu = document.getElementById("context_menu");
+			removeAllChildren(contextMenu);
+			var rect = fromElement.getBoundingClientRect();
+			contextMenu.style.top = rect.bottom;
+			contextMenu.style.left = rect.left;
+			contextMenu.style.display = "block";
+			
+			for(var Idx = 0; Idx < items.length; ++Idx)
+			{
+				var item = items[Idx];
+				
+				var contextMenuItem = merge(document.createElement("DIV"), {
+					className:"contextMenuItem",
+					onclick:item.action
+				});
+				contextMenuItem.appendChild( document.createTextNode(item.text) );
+				contextMenu.appendChild(contextMenuItem);
+				
+			}
+			
+			setTimeout(function(){
+				document.addEventListener("click", hideContextMenu);
+			}, 0);
+		}
+		
+		function hideContextMenu()
+		{
+			var contextMenu = document.getElementById("context_menu");
+			contextMenu.style.display = "none";
+			document.removeEventListener("click", hideContextMenu);
+		}
+		
     </script>
     <style>
         #palette_area {
@@ -645,7 +1036,7 @@
         }
 
         #scratch_area {
-            background-color: #BBBBFF;
+            background-color: #AADDAA;
             height: 600px;
             width: 600px;
             padding: 5px;
@@ -710,59 +1101,64 @@
             padding-right: 4px;
             cursor: pointer;
         }
-
-        .nativeNode {
+		
+		.nativeNode, .nativeLeaf, .declareBlock, .scopeNode, .valueNode, .commandNode, .mutableNativeNode {
             border: outset;
+			border-radius:6px;
+			padding-top:0px;
+			padding-bottom:0px;
+			padding-left:4px;
+			padding-right:4px;
+			cursor:pointer;
+			display:inline-block;
+			color: #000000;
+		}
+
+		/* color scheme idea:
+			rvalue: blue, lvalue: orange, type: green.
+			Functions are lighter versions -
+			rvalue: sky blue, lvalue: cream, type function: pale green.
+			Commands are redder versions -
+			rvalue: violet, lvalue: red.
+			(no commands return types, but they would be brown I guess.)
+			Pattern matches?
+		*/
+        .nativeNode, .declareBlock {
+            border-color: #DDEEFF; /*#FFCC66;*/
+            background-color: #CCCCFF; /*#FFA500;*/
+        }
+
+		.mutableNativeNode {
+            border-color: #FF8822;
+            background-color: #FF5500;
+        }
+
+        .commandNode {
             border-color: #FFCC66;
             background-color: #FFA500;
-            border-radius: 6px;
-            padding-top: 1px;
-            padding-bottom: 1px;
-            padding-left: 4px;
-            padding-right: 4px;
-            cursor: pointer;
-            display: inline-block;
         }
 		
 		.nativeLeaf{
-			border:outset;
-			border-color:#66CCFF;
-			background-color:#00A5FF;
-			border-radius:6px;
-			padding-top:1px;
-			padding-bottom:1px;
-			padding-left:4px;
-			padding-right:4px;
-			cursor:pointer;
-			display:inline-block;
+			border-color:#AACCFF;
+			background-color:#55A5FF;
 		}
 
 		.scopeNode{
-			border:outset;
-			border-color:#FF6666;
+			border-color:#FF6611;
 			background-color:#FF5500;
-			border-radius:6px;
-			padding-top:1px;
-			padding-bottom:1px;
-			padding-left:4px;
-			padding-right:4px;
-			cursor:pointer;
-			display:inline-block;
 		}
 
         .valueNode {
-            border-style: outset;
             border-color: #B060B0;
             background-color: #800080;
             color: white;
-            border-radius: 6px;
-            padding-top: 1px;
-            padding-bottom: 1px;
-            padding-left: 4px;
-            padding-right: 4px;
-            cursor: pointer;
-            display: inline-block;
         }
+		
+		.declareBlock {
+            background-color: #554411;
+			border-color: #665544;
+            color: white;
+		}
 
         .numberField {
             background-color: white;
@@ -777,7 +1173,7 @@
         }
 
         .variableField {
-            background-color: #CCAAAA;
+            background-color: #FF5500;
             border: inset;
             border-width: 1px;
             border-radius: 2px;
@@ -790,6 +1186,63 @@
 			height:15px;
             display: inline-block;
         }
+		
+		.templateField, .templateFieldLeaf, .mutableTemplateFieldLeaf {
+            background-color: #CCCCFF; /*#FFA500;*/
+			border-color: #DDEEFF; /*#FFCC66;*/
+            border: inset;
+            border-width: 1px;
+            border-radius: 3px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+            padding-left: 2px;
+            padding-right: 2px;
+			font-weight: bold;
+            display: inline-block;
+			color: #000000;
+        }
+		
+		.templateFieldLeaf {
+			border-color: #AACCFF;
+            background-color: #55A5FF;
+            padding-left: 4px;
+            padding-right: 4px;
+		}
+
+		.mutableTemplateFieldLeaf {
+            background-color: #FF5500;
+			border-color: #FF9999;
+            padding-left: 4px;
+            padding-right: 4px;
+		}
+		
+		#context_menu {
+            background-color: #BBBBDD;
+			position:absolute;
+			top:0;
+			left:0;
+            display: none;
+			border-color: #CCCCDD;
+            border: outset;
+            border-width: 1px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            padding-left: 1px;
+            padding-right: 1px;
+			user-select:none;
+		}
+		
+		.contextMenuItem {
+            background-color: #BBBBBB;
+            padding-left: 2px;
+            padding-right: 2px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+		}
+		
+		.contextMenuItem:hover {
+            background-color: #6699FF;
+		}
 	</style>
 </head>
 <body onload="onload_init()">
@@ -809,6 +1262,7 @@
             </td>
         </tr>
     </table>
+	<div id="context_menu"></div>
 
     <!--
     <table class="sctable">

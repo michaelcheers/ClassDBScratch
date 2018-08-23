@@ -148,9 +148,11 @@ function checkTypes(values, expectedTypes) {
 function $if(condition, consequent, alternate) {
     checkTypes(alternate ? [condition, consequent, alternate] : [condition, consequent], alternate ? ['boolean', 'function', 'function'] : ['boolean', 'function']);
     if (condition)
-        consequent();
+        return consequent();
     else if (alternate)
-        alternate();
+        return alternate();
+    else
+        return undefined;
 }
 function and(a, b) {
     checkTypes([a, b], ['boolean', 'boolean']);
@@ -165,7 +167,7 @@ function div(a, b) {
     return a / b;
 }
 function mul(a, b) {
-    checkTypes([a, b], ['number', 'number']);
+    //checkTypes([a, b], ['number', 'number']);
     return a * b;
 }
 function not(value) {
@@ -210,6 +212,10 @@ function setRegister(local, number, setTo) {
 function getRegister(local, number) {
     checkTypes([local, number], ['boolean', 'number']);
     return (local ? localRegisters : globalRegisters)[number];
+}
+function refRegister(local, number) {
+    checkTypes([local, number], ['boolean', 'number']);
+    return { scope: (local ? localRegisters : globalRegisters), key: number };
 }
 function eq(a, b) {
     checkTypes([a, b], ['number', 'number']);
@@ -272,7 +278,9 @@ function compileBlocks(value, program) {
     var scope = { declaredVariables: [] };
     for (var _i = 0, value_1 = value; _i < value_1.length; _i++) {
         var item = value_1[_i];
-        resultArray.push(compileBlock(item, program, scope));
+        var compiledBlock = compileBlock(item, program, scope);
+        if (compiledBlock !== undefined)
+            resultArray.push(compiledBlock);
     }
     return {
         body: resultArray,
@@ -286,9 +294,24 @@ function literalise(v) {
     };
 }
 function compileBlockAsLValue(value, program, scope) {
-    var valueCopy = merge({}, value);
-    valueCopy.native = valueCopy.nativeLValue;
-    return valueCopy;
+    var $t;
+    switch (value.type) {
+        case 'native':
+            var valueCopy = merge({}, value);
+            if (valueCopy.nativeLValue !== undefined) {
+                valueCopy.native = valueCopy.nativeLValue;
+            }
+            else {
+                throw new Error("Not an assignable value.");
+            }
+            return valueCopy;
+        case 'refvar':
+            return {
+                type: "native",
+                "native": refRegister,
+                args: [($t = value.local), ($t ? scope.declaredVariables : program.globalVariables).indexOf(value.name)].map(literalise)
+            };
+    }
 }
 function compileBlock(value, program, scope) {
     var $t;
@@ -300,6 +323,7 @@ function compileBlock(value, program, scope) {
                 "args": [true, scope.declaredVariables.push(value.name) - 1].map(literalise).concat([($t = value.setTo, $t != null ? $t : null)])
             };
         case 'getvar':
+        case 'refvar':
             return {
                 type: "native",
                 "native": getRegister,
@@ -323,12 +347,47 @@ function compileBlock(value, program, scope) {
                 }
             }
             return valueCopy;
+        case 'functionCall':
+            var compiledValue = merge({}, value);
+            var callArguments = [];
+            var localVariableNames = [];
+            for (var Idx = 0; Idx < value.template.args.length; ++Idx) {
+                localVariableNames.push(value.template.args[Idx].name);
+                callArguments.push(compileBlock(value.args[Idx], program, scope));
+            }
+            compiledValue.args = callArguments;
+            var compiledBody = value.template.parent.compiledBody;
+            if (compiledBody === undefined) {
+                compiledBody = [];
+                value.template.parent.compiledBody = compiledBody; // don't come in here recursively
+                var localScope = { declaredVariables: localVariableNames };
+                var body = value.template.parent.args[1];
+                compiledBody.push(compileBlock(body, program, localScope));
+            }
+            compiledValue.body = compiledBody;
+            return compiledValue;
         case 'ifStatement':
             return {
                 type: 'native',
                 native: $if,
-                args: value.alternate ? [value.condition, value.consequent, value.alternate] : [value.condition, value.consequent]
+                args: [value.condition, value.consequent, value.alternate]
             };
+        case "declareBlock":
+            switch (value.args[0].type) {
+                case "functionDeclare":
+                    value.compiledBody = undefined; // clear compiled data from previous runs
+                    break;
+                case "varDeclare":
+                    var varDecl = value.args[0];
+                    var initValue = compileBlock(value.args[1], program, scope);
+                    var index = scope.declaredVariables.push(varDecl.name);
+                    return {
+                        "type": "native",
+                        "native": setRegister,
+                        "args": [true, index - 1].map(literalise).concat([initValue])
+                    };
+            }
+            return undefined;
         default:
             return value;
     }
@@ -408,15 +467,27 @@ function run(value) {
             return function () {
                 value.blocks.forEach(run);
             };
+        case "functionCall":
+            var argsIn = value.args.map(function (v) {
+                return run(v);
+            });
+            return runBodyWithArgs(value, argsIn);
         default:
             throw new Error("Unknown node type: " + value.type);
     }
 }
 function runBody(value) {
+    return runBodyWithArgs(value, arrayInit(value.variables, null));
+}
+function runBodyWithArgs(value, variables) {
     var oldLocalRegisters = localRegisters.slice(0);
-    localRegisters = arrayInit(value.variables, null);
-    value.body.forEach(run);
+    localRegisters = variables;
+    var result;
+    for (var Idx = 0; Idx < value.body.length; ++Idx) {
+        result = run(value.body[Idx]);
+    }
     localRegisters = oldLocalRegisters;
+    return result;
 }
 function runProgram(value) {
     globalRegisters = arrayInit(value.globalVariables, null);
