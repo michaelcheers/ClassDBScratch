@@ -11,7 +11,7 @@
             args: [
             {
                 type: "native",
-                name: "alert ",
+                name: ["alert "],
                 "native": alert,
 				hasSideEffects:true,
                 args: [
@@ -66,11 +66,11 @@
                 args: [
 					{
                         type: "functionDeclarePlaceholder",
-                        name: "function",
+                        name: ["function"],
 						args:[
 							{
 								type: "varDeclarePlaceholder",
-								name: "arg",
+								name: ["arg"],
 								local: true,
 							},
 						],
@@ -88,7 +88,7 @@
                 args: [
 					{
 						type: "varDeclarePlaceholder",
-						name: "constant",
+						name: ["constant"],
 						local: true,
 						mutable:false,
                     },
@@ -105,7 +105,7 @@
                 args: [
 					{
 						type: "varDeclarePlaceholder",
-						name: "variable",
+						name: ["variable"],
 						local: true,
 						mutable:true,
                     },
@@ -117,7 +117,7 @@
             },
             {
                 type: "nativeTemplate",
-                name: "alert ",
+                name: ["alert "],
                 "native": alert,
 				hasSideEffects:true,
                 args: [{ type: "literal", literal: "Hello" }]
@@ -273,6 +273,15 @@
 				args: [
 					createLiteralNode(0),
 					createLiteralNode(0),
+					createLiteralNode(0),
+                ]
+            },
+			{
+                type: "nativeTemplate",
+                native: function(...args){ return args; },
+                name: ["list "],
+				varArgs: true,
+				args: [
 					createLiteralNode(0),
                 ]
             }
@@ -468,21 +477,27 @@
 					if(scratchNode.template !== undefined)
 						template = scratchNode.template;
 
-					var textList = template.name;
-					var textList = textList ? (typeof textList === 'string' ? [textList] : textList) : [];
-
-					newElement.appendChild( document.createTextNode(textList[0]) );
+					newElement.appendChild( document.createTextNode(template.name[0]) );
 
 					if(scratchNode.args !== undefined && scratchNode.args.length > 0)
 					{
+						newElement.appendChild( document.createTextNode(" ") );
 						for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 						{
 							newElement.appendChild( representScratchNode(scratchNode.args[Idx]) );
-							if(textList[Idx+1] !== undefined)
+							if(template.name[Idx+1] !== undefined)
 							{
-								newElement.appendChild( document.createTextNode(textList[Idx+1]) );
+								newElement.appendChild( document.createTextNode(template.name[Idx+1]) );
 							}
 						}
+					}
+										
+					if(template.varArgs && scratchNode.type !== "nativeTemplate")
+					{
+						createContextMenu(newElement, [
+							contextMenu_AddArgument(scratchNode),
+							contextMenu_RemoveArgument(scratchNode),
+						]);
 					}
                     break;
                 case "literal":
@@ -499,7 +514,9 @@
                             },
                             onkeyup: function () {
                                 this.size = this.value.length > 6 ? 20 : 3;
-                            }
+                            },
+							draggable: true,
+                            ondragstart: cancelDrag
                         });
                     break;
 					
@@ -508,6 +525,8 @@
 						{
 							className: 'variableField',
 						});
+
+					newElement.appendChild( document.createTextNode("??") );
 					break;
 
 				case "functionDeclarePlaceholder":
@@ -537,15 +556,33 @@
 								className: 'templateField',
 							});
 						var nameDiv = document.createElement("DIV");
-						nameDiv.appendChild( document.createTextNode(scratchNode.name) );
+						nameDiv.appendChild( createEditableSpan( scratchNode.name[0], function(text){ scratchNode.name[0] = text; } ));
 						newElement.appendChild(nameDiv);
 						
+						createContextMenu(nameDiv, [
+							contextMenu_AddParameterDecl(scratchNode),
+							contextMenu_CollapseParameters(scratchNode),
+						]);
+						
 						if(scratchNode.args !== undefined)
-						{
+						{							
 							for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 							{
 								var argsDiv = document.createElement("DIV");
-								argsDiv.style.paddingLeft = 10;
+								argsDiv.appendChild( document.createTextNode("*") );
+								
+								if(Idx > 0)
+								{
+									var nameText = scratchNode.name[Idx];
+									if(nameText === undefined) {nameText = " ";}
+									
+									var editableSpan = createEditableSpan(nameText, function(index){ return function(text){ scratchNode.name[index] = text; } }(Idx) );
+									editableSpan.style.minWidth = 20;
+
+									argsDiv.appendChild(editableSpan);
+								}
+								argsDiv.appendChild( document.createTextNode(" ") );
+								
 								newElement.appendChild(argsDiv);
 								
 								argsDiv.appendChild( representScratchNode(scratchNode.args[Idx]) );
@@ -629,10 +666,52 @@
 		function representDeclarationNode(scratchNode)
 		{
 			var newNode;
-			var editableSpan = merge(document.createElement("SPAN"),
+			newNode = merge(document.createElement("DIV"),
+				{
+					className: 'templateField',
+					draggable: true,
+					ondragstart: drag,
+				});
+
+			var editableSpan = createEditableSpan( scratchNode.name[0], function(text){ scratchNode.name[0] = text; } );
+			newNode.appendChild(editableSpan);
+			
+			if(scratchNode.args === undefined || scratchNode.args.length === 0)
+			{
+				newNode.className = scratchNode.mutable?"mutableTemplateFieldLeaf": "templateFieldLeaf";
+			}
+			else if(scratchNode.args !== undefined)
+			{
+				newNode.appendChild( document.createTextNode(" ") );
+				for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+				{
+					newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
+					
+					var nameText = scratchNode.name[Idx+1];
+					if(nameText === undefined) nameText = "";
+					
+					if(nameText !== "")
+					{
+						newNode.appendChild( document.createTextNode(nameText) );
+					}
+				}
+			}
+			
+			if(scratchNode.type === "functionDeclare")
+			{	
+				createContextMenu(newNode, [
+					contextMenu_AddParameterDecl(scratchNode),
+					contextMenu_ExpandParameters(scratchNode),
+				]);
+			}
+			return newNode;
+		}
+		
+		function createEditableSpan(text, onEdit)
+		{
+			var result = merge(document.createElement("SPAN"),
 				{
 					contentEditable: false,
-					scratchNode: scratchNode,
 					onblur: function()
 					{
 						this.contentEditable = false;
@@ -651,58 +730,91 @@
 							selectElementContents(this);
 						}
 					},
-					oninput: function()
-					{
-						this.scratchNode.name = this.innerText;
-					}
+					
+					oninput: function(){ onEdit(this.innerText); }
 				});
-			newNode = merge(document.createElement("DIV"),
-				{
-					className: 'templateField',
-					draggable: true,
-					ondragstart: drag,
-				});
-			newNode.appendChild(editableSpan);
-			editableSpan.appendChild( document.createTextNode(scratchNode.name) );
-			
-			if(scratchNode.args === undefined || scratchNode.args.length === 0)
+			result.appendChild( document.createTextNode(text) );
+			return result;
+		}
+		
+		function createContextMenu(element, items)
+		{
+			var contextMenuSpan = merge(document.createElement("SPAN"),
 			{
-				newNode.className = scratchNode.mutable?"mutableTemplateFieldLeaf": "templateFieldLeaf";
-			}
-			else if(scratchNode.args !== undefined)
-			{
-				for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+				onclick:function()
 				{
-					newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
+					showContextMenu(this, items);
+				},
+			});
+			contextMenuSpan.appendChild( document.createTextNode("▼") );
+			element.appendChild(contextMenuSpan);
+		}
+		
+		function contextMenu_AddParameterDecl(scratchNode)
+		{
+			return {
+				text:"Add Parameter",
+				action:function()
+				{
+					scratchNode.args.push({
+						type:"varDeclare",
+						name:["arg"+(scratchNode.args.length+1)],
+						local:true
+					});
+					displayScratchArea();
 				}
-			}
-			
-			if(scratchNode.type === "functionDeclare")
-			{	
-				var contextMenuSpan = merge(document.createElement("SPAN"),
+			};
+		}
+		
+		function contextMenu_ExpandParameters(scratchNode)
+		{
+			return {
+				text:"Expand Parameters",
+				action:function()
 				{
-					onclick:function()
-					{
-						showContextMenu(this, [
-							{ text:"Add Parameter", action:function(){
-								scratchNode.args.push({
-									type:"varDeclare",
-									name:"arg"+(scratchNode.args.length+1),
-									local:true
-								});
-								displayScratchArea();
-							} },
-							{ text:"Edit Parameters", action:function(){
-								g_expandedNode = scratchNode;
-								displayScratchArea();
-							} },
-						]);
-					},
-				});
-				contextMenuSpan.appendChild( document.createTextNode("▼") );
-				newNode.appendChild(contextMenuSpan);
-			}
-			return newNode;
+					g_expandedNode = scratchNode;
+					displayScratchArea();
+				}
+			};
+		}
+		
+		function contextMenu_CollapseParameters(scratchNode)
+		{
+			return {
+				text:"Collapse Parameters",
+				action:function()
+				{
+					g_expandedNode = undefined;
+					displayScratchArea();
+				}
+			};
+		}
+		
+		function contextMenu_AddArgument(scratchNode)
+		{
+			return {
+				text:"Add",
+				action:function()
+				{
+					scratchNode.args.push({
+						type:"literal",
+						literal:""
+					});
+					displayScratchArea();
+				}
+			};
+		}
+
+		function contextMenu_RemoveArgument(scratchNode)
+		{
+			return {
+				text:"Remove",
+				action:function()
+				{
+					scratchNode.args.pop();
+					displayScratchArea();
+				}
+			};
 		}
 
         var g_draggingElement;
@@ -711,6 +823,11 @@
         function drag(ev)
 		{
             g_draggingElement = ev.target;
+        }
+		
+		function cancelDrag(ev)
+		{
+			ev.preventDefault();
         }
 
         function getRoot(node)
@@ -1181,8 +1298,9 @@
             padding-bottom: 1px;
             padding-left: 4px;
             padding-right: 4px;
+			text-align: center;
 			vertical-align: bottom;
-			width:30px;
+			width:20px;
 			height:15px;
             display: inline-block;
         }
