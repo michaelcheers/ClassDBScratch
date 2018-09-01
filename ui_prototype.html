@@ -9,7 +9,7 @@
         var testDoc = {
             type: "document",
             args: [
-            {
+/*            {
                 type: "native",
                 name: ["alert "],
                 "native": alert,
@@ -52,7 +52,7 @@
                         }
                     ]
                 }]
-            }
+            }*/
             ]
         };
 
@@ -65,11 +65,11 @@
 				run: false,
                 args: [
 					{
-                        type: "functionDeclarePlaceholder",
+                        type: "functionDeclare",
                         name: ["function"],
 						args:[
 							{
-								type: "varDeclarePlaceholder",
+								type: "varDeclare",
 								name: ["arg"],
 								local: true,
 							},
@@ -278,10 +278,57 @@
             },
 			{
                 type: "nativeTemplate",
+                native: function(cond, body){ while(run(cond)){ run(body) }; },
+                name: ["while ", " do "],
+				run: false,
+				args: [
+					createLiteralNode(0),
+					createLiteralNode(0),
+                ]
+            },
+			{
+                type: "nativeTemplate",
                 native: function(...args){ return args; },
                 name: ["list "],
 				varArgs: true,
 				args: [
+					createLiteralNode(0),
+                ]
+            },
+            {
+                type: "nativeTemplate",
+                name: ["element ", " from "],
+                "native": function(idx, list){ return list[idx]; },
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    },
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "nativeTemplate",
+                name: ["length of "],
+                "native": function(list){ return list.length; },
+                args: [
+                    {
+                        type: "literal",
+                        literal: ""
+                    }
+                ]
+            },
+            {
+                type: "nativeTemplate",
+                name: ["list ", " add "],
+                "native": function(entry, v){ entry.scope[entry.key].push(v); },
+				lvalue: [true, false],
+				hasSideEffects:true,
+                args: [
+                    createEmptyVariableNode(),
 					createLiteralNode(0),
                 ]
             }
@@ -310,6 +357,9 @@
 		var localscope = [
 			new ScopeEntry("length", 15)
 		];
+		
+		var contextMenuLayer;
+		var contextMenuStack = [];
 
         function addParents(tree)
 		{
@@ -391,6 +441,8 @@
 			
 			var dataArea = document.getElementById("data_area");
 			displayData(localscope, dataArea);
+
+			contextMenuLayer = document.getElementById("context_menu_layer");
         }
 
 		function displayScratchArea()
@@ -446,32 +498,36 @@
 				case "refvar":
 				case "declareBlock":
 				case "declareBlockTemplate":
-                    newElement = merge(document.createElement("DIV"),
-                        {
-                            draggable: true,
-                            ondragstart: drag
-                        });
-						
+					var className;
 					switch(scratchNode.type)
 					{
 						case "declareBlock":
 						case "declareBlockTemplate":
-							newElement.className = "declareBlock";
+							className = "declareBlock";
 							break;
 						case "refvar":
-							newElement.className = "mutableNativeNode";
+							className = "mutableNativeNode";
 							break;
 						case "getvar":
-							newElement.className = "nativeLeaf";
+							className = "nativeLeaf";
 						default:
 							if(scratchNode.hasSideEffects)
-								newElement.className = "commandNode";
+								className = "commandNode";
 							else if(scratchNode.args === undefined || scratchNode.args.length === 0)
-								newElement.className = "nativeLeaf";
+								className = "nativeLeaf";
 							else
-								newElement.className = "nativeNode";
+								className = "nativeNode";
 							break;
 					}
+					
+					newElement = merge(document.createElement("DIV"),
+					{
+						className: className,
+						draggable: true,
+						ondragstart: drag,
+						ondragover: dragOverElement(className+" draggedOverBorder"),
+						ondragleave: dragLeaveElement(className),
+					});
 						
 					var template = scratchNode;
 					if(scratchNode.template !== undefined)
@@ -499,6 +555,7 @@
 							contextMenu_RemoveArgument(scratchNode),
 						]);
 					}
+					
                     break;
                 case "literal":
                     newElement = merge(document.createElement("INPUT"),
@@ -508,15 +565,20 @@
                             value: scratchNode.literal,
                             size: 3,
                             onchange: function () {
-                                var $t;
-                                this.scratchNode.literal = (($t = parseFloat(this.value)) ? $t : this.value);
+                                var $t = parseFloat(this.value);
+								if(isNaN($t))
+									this.scratchNode.literal = this.value;
+								else
+									this.scratchNode.literal = $t;
                                 this.size = this.value.length > 6 ? 20 : 3;
                             },
                             onkeyup: function () {
                                 this.size = this.value.length > 6 ? 20 : 3;
                             },
 							draggable: true,
-                            ondragstart: cancelDrag
+                            ondragstart: cancelDrag,
+							ondragover: dragOverElement("numberField draggedOverField"),
+							ondragleave: dragLeaveElement("numberField"),
                         });
                     break;
 					
@@ -528,15 +590,6 @@
 
 					newElement.appendChild( document.createTextNode("??") );
 					break;
-
-				case "functionDeclarePlaceholder":
-                    newElement = merge(document.createElement("DIV"),
-						{
-							className: 'templateField',
-						});
-						
-					newElement.appendChild( document.createTextNode(scratchNode.name) );
-					break;
 					
 				case "varDeclarePlaceholder":
                     newElement = merge(document.createElement("DIV"),
@@ -547,6 +600,9 @@
 					newElement.appendChild( document.createTextNode(scratchNode.name) );
 					break;
 					
+				case "functionImplement":
+					newElement = representImplementationNode(scratchNode);
+					break;
 				case "functionDeclare":
 				case "varDeclare":
 					if(g_expandedNode === scratchNode)
@@ -600,6 +656,7 @@
 			{
 				case "nativeTemplate":
 				case "functionDeclare":
+				case "functionParamDeclare":
 				case "declareBlockTemplate":
 					newElement.isTemplate = true;
 					break;
@@ -665,13 +722,33 @@
 		
 		function representDeclarationNode(scratchNode)
 		{
-			var newNode;
-			newNode = merge(document.createElement("DIV"),
+			var draggable = true;
+			if(scratchNode.parent !== undefined)
+			{
+				if(scratchNode.parent.type === "declareBlockTemplate")
 				{
-					className: 'templateField',
-					draggable: true,
-					ondragstart: drag,
-				});
+					// placeholders in the library are just there to look pretty
+					var newNode = merge(document.createElement("DIV"),
+					{
+						className: 'templateField',
+					});
+					newNode.appendChild(document.createTextNode(scratchNode.name[0]));
+					return newNode;
+				}
+				else if(scratchNode.parent.type === "functionDeclare" &&
+					scratchNode.parent.parent !== undefined &&
+					scratchNode.parent.parent.type === "functionDeclare")
+				{
+					// a parameter to a function argument can only be renamed, not dragged
+					draggable = false;
+				}
+			}
+		
+			var newNode = merge(document.createElement("DIV"),
+			{
+				draggable: draggable,
+				ondragstart: drag,
+			});
 
 			var editableSpan = createEditableSpan( scratchNode.name[0], function(text){ scratchNode.name[0] = text; } );
 			newNode.appendChild(editableSpan);
@@ -682,6 +759,15 @@
 			}
 			else if(scratchNode.args !== undefined)
 			{
+				if(scratchNode.parent.type === 'functionDeclare' && scratchNode.type === 'functionDeclare')
+				{
+					newNode.className = 'functionTemplate';
+				}
+				else
+				{
+					newNode.className = 'templateField';
+				}
+
 				newNode.appendChild( document.createTextNode(" ") );
 				for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 				{
@@ -697,13 +783,56 @@
 				}
 			}
 			
-			if(scratchNode.type === "functionDeclare")
-			{	
-				createContextMenu(newNode, [
-					contextMenu_AddParameterDecl(scratchNode),
-					contextMenu_ExpandParameters(scratchNode),
-				]);
+			switch(scratchNode.type)
+			{
+				case "functionDeclare":
+				{	
+					createContextMenu(newNode, [
+						contextMenu_AddParameterDecl(scratchNode),
+						contextMenu_ExpandParameters(scratchNode),
+					]);
+				}
+				break;
+
+				case "functionParamDeclare":
+				{	
+					createContextMenu(newNode, [
+						contextMenu_AddParameterDecl(scratchNode),
+					]);
+				}
+				break;
 			}
+			return newNode;
+		}
+
+		function representImplementationNode(scratchNode)
+		{
+			var newNode;
+			newNode = merge(document.createElement("DIV"),
+				{
+					className: 'functionImplement'
+				});
+
+			newNode.appendChild(document.createTextNode(scratchNode.name[0]));
+			
+			newNode.appendChild( document.createTextNode(" ") );
+			for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
+			{
+				newNode.appendChild( representScratchNode(scratchNode.args[Idx]) );
+				
+				var nameText = scratchNode.name[Idx+1];
+				if(nameText === undefined) nameText = "";
+				
+				if(nameText !== "")
+				{
+					newNode.appendChild( document.createTextNode(nameText) );
+				}
+				else if(Idx === scratchNode.args.length-2)
+				{
+					newNode.appendChild( document.createTextNode(" returns ") );
+				}
+			}
+
 			return newNode;
 		}
 		
@@ -752,17 +881,39 @@
 		
 		function contextMenu_AddParameterDecl(scratchNode)
 		{
+			var addParam = function()
+			{
+				scratchNode.args.push({
+					type:"varDeclare",
+					name:["arg"+(scratchNode.args.length+1)],
+					local:true
+				});
+				displayScratchArea();
+			};
+		
 			return {
 				text:"Add Parameter",
-				action:function()
-				{
-					scratchNode.args.push({
-						type:"varDeclare",
-						name:["arg"+(scratchNode.args.length+1)],
-						local:true
-					});
-					displayScratchArea();
-				}
+				submenu:[
+					{text:"Value", action:addParam},
+					{text:"Function", action:function()
+						{
+							scratchNode.args.push({
+								type:"functionDeclare",
+								name:["action"+(scratchNode.args.length+1)],
+								local:true,
+								hasSideEffects:true,
+								args:[{
+									type:"varDeclare",
+									name:["arg"],
+									local:true,
+									args:[]
+								}]
+							});
+							displayScratchArea();
+						}
+					},
+				],
+				action:addParam
 			};
 		}
 		
@@ -819,6 +970,7 @@
 
         var g_draggingElement;
 		var g_expandedNode;
+		var g_draggedOverElement = undefined;
 
         function drag(ev)
 		{
@@ -829,6 +981,46 @@
 		{
 			ev.preventDefault();
         }
+		
+		function dragOverElement(className)
+		{
+			return function()
+			{
+				if(g_draggedOverElement !== undefined && g_draggedOverElement !== this)
+				{
+					if(hasAncestor(g_draggedOverElement, this))
+						return;
+
+					g_draggedOverElement.ondragleave();
+				}
+
+				g_draggedOverElement = this;
+				this.className = className;
+			};
+		}
+
+		function dragLeaveElement(className)
+		{
+			return function()
+			{
+				if(g_draggedOverElement === this)
+					g_draggedOverElement = undefined;
+
+				this.className = className;
+			};
+		}
+		
+		function hasAncestor(element, ancestor)
+		{
+			while(element !== null)
+			{
+				element = element.parentElement;
+				if(element === ancestor)
+					return true;
+			}
+			
+			return false;
+		}
 
         function getRoot(node)
 		{
@@ -838,35 +1030,50 @@
             return node;
         }
 
-        function cloneNode(node, resolvingParent)
+        function cloneNode(node, clonedParent)
 		{
             checkTypes([node], ['object']);
             var result = {};
-			var resolvingTemplate = false;
             
 			switch(node.type)
 			{
 				case "nativeTemplate":
 					result.type = "native";
 					break;
-				case "functionDeclarePlaceholder":
-					result.type = "functionDeclare";
-					break;
 				case "functionDeclare":
-					result.type = "functionCall";
+					if(clonedParent === undefined)
+					{
+						result.type = "functionCall";
+						result.template = node;
+						resolvingTemplate = true;
+					}
+					else if(clonedParent.type === "functionCall")
+					{
+						result.type = "functionImplement";
+						result.template = node;
+					}
+					else
+					{
+						result.type = "functionDeclare";
+					}
 					result.template = node;
-					resolvingTemplate = true;
 					break;
 				case "declareBlockTemplate":
 					result.type = "declareBlock";
 					break;
 				case "varDeclarePlaceholder":
-					result.type = "varDeclare";
-					break;
 				case "varDeclare":
-					if(resolvingParent) //is this a parameter in a function declaration, and we're dragging out a function call from it?
+					//is this a parameter in a function declaration, and we're dragging out a function call from it?
+					if(clonedParent !== undefined)
 					{
-						return { type:"literal", literal:"" };
+						if(clonedParent.type === "functionCall")
+						{
+							return { type:"literal", literal:"" };
+						}
+						else
+						{
+							result.type = "varDeclare";
+						}
 					}
 					else if(node.mutable)
 					{
@@ -886,13 +1093,18 @@
 
 			for (var key in node)
 			{
-                if (key === "parent" || key === "type")
+                if (result.hasOwnProperty(key) || key === "parent")
                     continue;
                 var value = node[key];
                 result[key] = isArray(value) ? value.map(function (v) {
-                    return typeof v !== 'object' ? v : cloneNode(v, resolvingTemplate);
+                    return typeof v !== 'object' ? v : cloneNode(v, result);
                 }) : value;
             }
+			
+			if(result.type === "functionImplement")
+			{
+				result.args.push({ type:"literal", literal:"" });
+			}
 			
             return result;
         }
@@ -945,17 +1157,13 @@
 					case "varDeclarePlaceholder":
 						return;
 					case "varDeclare":
-						if(draggingNode.type === "varDeclare")
+						if(draggingNode.type === "varDeclare" && targetNode.parent === draggingNode.parent)
 						{
-							if(targetNode.parent === draggingNode.parent)
-							{
-								var draggedArgIdx = getParentArgIndex(draggingNode);
-								draggingNode.parent.args.splice(draggedArgIdx, 1);
-								var targetArgIdx = getParentArgIndex(targetNode);
-								targetNode.parent.args.splice(targetArgIdx, 0, draggingNode);
-								displayScratchArea();
-								return;
-							}
+							var draggedArgIdx = getParentArgIndex(draggingNode);
+							draggingNode.parent.args.splice(draggedArgIdx, 1);
+							var targetArgIdx = getParentArgIndex(targetNode);
+							targetNode.parent.args.splice(targetArgIdx, 0, draggingNode);
+							displayScratchArea();
 						}
 						return;
 				}
@@ -1112,13 +1320,28 @@
 		
 		function showContextMenu(fromElement, items)
 		{
-			var contextMenu = document.getElementById("context_menu");
-			removeAllChildren(contextMenu);
+			removeAllChildren(contextMenuLayer);
+			contextMenuStack = [];
+			
+			var contextMenu = merge(document.createElement("DIV"), {
+				className:"contextMenu",
+			});
 			var rect = fromElement.getBoundingClientRect();
 			contextMenu.style.top = rect.bottom;
 			contextMenu.style.left = rect.left;
-			contextMenu.style.display = "block";
 			
+			contextMenuLayer.appendChild(contextMenu);
+			contextMenuStack.push(contextMenu);
+
+			addMenuItems(contextMenu, items);
+
+			setTimeout(function(){
+				document.addEventListener("click", hideContextMenu);
+			}, 0);
+		}
+		
+		function addMenuItems(contextMenu, items)
+		{
 			for(var Idx = 0; Idx < items.length; ++Idx)
 			{
 				var item = items[Idx];
@@ -1128,19 +1351,93 @@
 					onclick:item.action
 				});
 				contextMenuItem.appendChild( document.createTextNode(item.text) );
+				contextMenuItem.parentMenu = contextMenu;
 				contextMenu.appendChild(contextMenuItem);
 				
+				if(item.submenu !== undefined)
+				{
+					contextMenuItem.appendChild( document.createTextNode(" ►") );
+					contextMenuItem.onmouseover = function(itemElement, submenu){
+						return function(){ showSubmenu(itemElement, submenu); }
+					} (contextMenuItem, item.submenu);
+				}
+				else
+				{
+					contextMenuItem.onmouseover = function(){ closeSubmenuTreeUnder(contextMenu); }
+				}
 			}
+		}
+		
+		function showSubmenu(parentElement, submenuItems)
+		{
+			for(var Idx = 0; Idx < contextMenuStack.length; ++Idx)
+			{
+				if(contextMenuStack[Idx] === parentElement.parentMenu)
+				{
+					var targetLength = Idx+1;
+					while(contextMenuStack.length > targetLength)
+					{
+						contextMenuLayer.removeChild(contextMenuStack.pop());
+					}
+				}
+			}
+		
+			var subMenu = merge(document.createElement("DIV"),
+			{
+				className: 'contextMenu',
+				draggable: true,
+				ondragstart: drag,
+			});
+			contextMenuLayer.appendChild(subMenu);
+			contextMenuStack.push(subMenu);
 			
-			setTimeout(function(){
-				document.addEventListener("click", hideContextMenu);
-			}, 0);
+			var rect = parentElement.getBoundingClientRect();
+			subMenu.style.top = rect.top;
+			subMenu.style.left = rect.right+1;
+			
+			parentElement.onmouseout = function(ev)
+			{
+				var rect = parentElement.getBoundingClientRect();
+				if(ev.clientX < rect.right)
+				{
+					closeSubmenuTree(subMenu);
+				}
+				parentElement.onmouseout = undefined;
+			};
+			
+			addMenuItems(subMenu, submenuItems);
+		}
+
+		function closeSubmenuTreeUnder(menu)
+		{
+			closeSubmenuTreeOffset(menu, 1);
+		}
+
+		function closeSubmenuTree(menu)
+		{
+			closeSubmenuTreeOffset(menu, 0);
+		}
+		
+		function closeSubmenuTreeOffset(menu, offset)
+		{
+			for(var Idx = 0; Idx < contextMenuStack.length; ++Idx)
+			{
+				if(contextMenuStack[Idx] === menu)
+				{
+					var targetLength = Idx+offset;
+					while(contextMenuStack.length > targetLength)
+					{
+						contextMenuLayer.removeChild(contextMenuStack.pop());
+					}
+					return;
+				}
+			}
 		}
 		
 		function hideContextMenu()
 		{
-			var contextMenu = document.getElementById("context_menu");
-			contextMenu.style.display = "none";
+			removeAllChildren(contextMenuLayer);
+			contextMenuStack = [];
 			document.removeEventListener("click", hideContextMenu);
 		}
 		
@@ -1152,7 +1449,7 @@
             background-color: beige;
         }
 
-        #scratch_area {
+        .scratch_area {
             background-color: #AADDAA;
             height: 600px;
             width: 600px;
@@ -1334,12 +1631,36 @@
             padding-right: 4px;
 		}
 		
-		#context_menu {
-            background-color: #BBBBDD;
+		.functionImplement, .functionTemplate {
+            border-color: #FFA500;
+            background-color: #FFA500;
+			border-style: solid;
+			border-width: 1px;
+			border-radius: 5px;
+            padding-left: 4px;
+            padding-right: 4px;
+            margin: 1px;
+		}
+		
+		.functionTemplate {
+			border-color: #FFCC66;
+			border-style: inset;
+            display: inline-block;
+		}
+
+		#context_menu_layer {
+            background-color: transparent;
 			position:absolute;
 			top:0;
 			left:0;
-            display: none;
+			width:1000;
+		}
+		
+		.contextMenu {
+			position:absolute;
+			top:0;
+			left:0;
+            background-color: #BBBBDD;
 			border-color: #CCCCDD;
             border: outset;
             border-width: 1px;
@@ -1361,6 +1682,18 @@
 		.contextMenuItem:hover {
             background-color: #6699FF;
 		}
+				
+		.draggedOverField {
+            border: dashed;
+			border-color:red;
+			border-width: 1px;
+			background-color: pink;
+		}
+		
+		.draggedOverBorder {
+			border: dashed;
+			border-color:red;
+		}
 	</style>
 </head>
 <body onload="onload_init()">
@@ -1372,7 +1705,7 @@
                 <div id="palette_area"></div>
             </td>
             <td style="vertical-align:top;">
-                <div id="scratch_area"></div>
+                <div id="scratch_area" class="scratch_area"></div>
             </td>
             <td style="vertical-align:top;">
                 <button onclick="onclick_AddVariable()">Add Variable</button>
@@ -1380,7 +1713,7 @@
             </td>
         </tr>
     </table>
-	<div id="context_menu"></div>
+	<div id="context_menu_layer"></div>
 
     <!--
     <table class="sctable">
