@@ -83,6 +83,30 @@
             },
 			{
                 type: "declareBlockTemplate",
+                name: ["declare ", " runs "],
+				run: false,
+				listArgsFrom:1,
+                args: [
+					{
+                        type: "functionDeclare",
+                        name: ["action"],
+						hasSideEffects:true,
+						args:[
+							{
+								type: "varDeclare",
+								name: ["arg"],
+								local: true,
+							},
+						],
+                    },
+					{
+						type: "literal",
+						literal: ""
+					},
+                ]
+            },
+			{
+                type: "declareBlockTemplate",
                 name: ["declare ", " = "],
 				run: false,
                 args: [
@@ -291,6 +315,7 @@
                 native: function(...args){ return args; },
                 name: ["list "],
 				varArgs: true,
+				listArgsFrom:0,
 				args: [
 					createLiteralNode(0),
                 ]
@@ -327,11 +352,42 @@
                 "native": function(entry, v){ entry.scope[entry.key].push(v); },
 				lvalue: [true, false],
 				hasSideEffects:true,
+				listArgsFrom:1,
                 args: [
                     createEmptyVariableNode(),
 					createLiteralNode(0),
                 ]
-            }
+            },
+			{
+                type: "typeTemplate",
+                name: ["Any"],
+            },
+			{
+                type: "typeTemplate",
+                name: ["Integer"],
+            },
+			{
+                type: "typeTemplate",
+                name: ["Number"],
+            },
+			{
+                type: "typeTemplate",
+                name: ["Text"],
+            },
+			{
+                type: "typeTemplate",
+                name: ["", "- List"],
+				args: [
+                    createEmptyTypeSlot(),
+                ]
+            },
+			{
+                type: "typeTemplate",
+                name: ["", "- Maybe"],
+				args: [
+                    createEmptyTypeSlot(),
+                ]
+            },
 		]};
 		
 		function ScopeEntry(name, value)
@@ -371,6 +427,13 @@
                     for (var Idx = 0; Idx < current.args.length; ++Idx)
 					{
                         addParentsRec(current.args[Idx], current);
+                    }
+                }
+                if (current.argTypes !== undefined)
+				{
+                    for (var Idx = 0; Idx < current.argTypes.length; ++Idx)
+					{
+                        addParentsRec(current.argTypes[Idx], current);
                     }
                 }
             };
@@ -498,6 +561,8 @@
 				case "refvar":
 				case "declareBlock":
 				case "declareBlockTemplate":
+				case "typeTemplate":
+				case "type":
 					var className;
 					switch(scratchNode.type)
 					{
@@ -510,6 +575,11 @@
 							break;
 						case "getvar":
 							className = "nativeLeaf";
+							break;
+						case "type":
+						case "typeTemplate":
+							className = "typeNode";
+							break;
 						default:
 							if(scratchNode.hasSideEffects)
 								className = "commandNode";
@@ -530,10 +600,17 @@
 					});
 						
 					var template = scratchNode;
+					var name = scratchNode.name;
 					if(scratchNode.template !== undefined)
+					{
 						template = scratchNode.template;
-
-					newElement.appendChild( document.createTextNode(template.name[0]) );
+						if(template.resolvedName !== undefined)
+						{
+							name = template.resolvedName;
+						}
+					}
+					
+					newElement.appendChild( document.createTextNode(name[0]) );
 
 					if(scratchNode.args !== undefined && scratchNode.args.length > 0)
 					{
@@ -541,16 +618,16 @@
 						for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 						{
 							newElement.appendChild( representScratchNode(scratchNode.args[Idx]) );
-							if(template.name[Idx+1] !== undefined)
+							if(name[Idx+1] !== undefined)
 							{
-								newElement.appendChild( document.createTextNode(template.name[Idx+1]) );
+								newElement.appendChild( document.createTextNode(name[Idx+1]) );
 							}
 						}
 					}
 										
 					if(template.varArgs && scratchNode.type !== "nativeTemplate")
 					{
-						createContextMenu(newElement, [
+						createContextMenu(newElement, scratchNode, [
 							contextMenu_AddArgument(scratchNode),
 							contextMenu_RemoveArgument(scratchNode),
 						]);
@@ -586,11 +663,23 @@
                     newElement = merge(document.createElement("DIV"),
 						{
 							className: 'variableField',
+							ondragover: dragOverElement("variableField draggedOverField"),
+							ondragleave: dragLeaveElement("variableField"),
 						});
 
 					newElement.appendChild( document.createTextNode("??") );
 					break;
-					
+
+				case "typeSlot":
+                    newElement = merge(document.createElement("DIV"),
+						{
+							className: 'typeSlot',
+							ondragover: dragOverElement("typeSlot draggedOverField"),
+							ondragleave: dragLeaveElement("typeSlot"),
+						});
+
+					newElement.appendChild( document.createTextNode("Any") );
+					break;
 				case "varDeclarePlaceholder":
                     newElement = merge(document.createElement("DIV"),
 						{
@@ -608,24 +697,36 @@
 					if(g_expandedNode === scratchNode)
 					{
 						newElement = merge(document.createElement("DIV"),
-							{
-								className: 'templateField',
-							});
+						{
+							className: 'templateField',
+						});
 						var nameDiv = document.createElement("DIV");
 						nameDiv.appendChild( createEditableSpan( scratchNode.name[0], function(text){ scratchNode.name[0] = text; } ));
 						newElement.appendChild(nameDiv);
 						
-						createContextMenu(nameDiv, [
+						createContextMenu(nameDiv, scratchNode, [
 							contextMenu_AddParameterDecl(scratchNode),
 							contextMenu_CollapseParameters(scratchNode),
 						]);
 						
 						if(scratchNode.args !== undefined)
-						{							
+						{
+							if(scratchNode.argTypes === undefined)
+								scratchNode.argTypes = [];
+							
 							for(var Idx = 0; Idx < scratchNode.args.length; ++Idx)
 							{
 								var argsDiv = document.createElement("DIV");
-								argsDiv.appendChild( document.createTextNode("*") );
+								//argsDiv.appendChild( document.createTextNode("*") );
+								var argType = scratchNode.argTypes[Idx];
+								if(argType === undefined)
+								{
+									argType = createEmptyTypeSlot();
+									argType.parent = scratchNode;
+									scratchNode.argTypes[Idx] = argType;
+								}
+								
+								argsDiv.appendChild( representScratchNode(argType) );
 								
 								if(Idx > 0)
 								{
@@ -658,6 +759,7 @@
 				case "functionDeclare":
 				case "functionParamDeclare":
 				case "declareBlockTemplate":
+				case "typeTemplate":
 					newElement.isTemplate = true;
 					break;
 				case "varDeclare":
@@ -730,14 +832,15 @@
 					// placeholders in the library are just there to look pretty
 					var newNode = merge(document.createElement("DIV"),
 					{
-						className: 'templateField',
+						className: scratchNode.hasSideEffects?'templateFieldAction':'templateField',
 					});
 					newNode.appendChild(document.createTextNode(scratchNode.name[0]));
 					return newNode;
 				}
 				else if(scratchNode.parent.type === "functionDeclare" &&
 					scratchNode.parent.parent !== undefined &&
-					scratchNode.parent.parent.type === "functionDeclare")
+					(scratchNode.parent.parent.type === "functionDeclare" ||
+						scratchNode.parent.parent.type === "functionImplement"))
 				{
 					// a parameter to a function argument can only be renamed, not dragged
 					draggable = false;
@@ -753,19 +856,25 @@
 			var editableSpan = createEditableSpan( scratchNode.name[0], function(text){ scratchNode.name[0] = text; } );
 			newNode.appendChild(editableSpan);
 			
+			newNode.className = draggable? "": "undraggable ";
+			
 			if(scratchNode.args === undefined || scratchNode.args.length === 0)
 			{
-				newNode.className = scratchNode.mutable?"mutableTemplateFieldLeaf": "templateFieldLeaf";
+				newNode.className += (scratchNode.mutable?"mutableTemplateFieldLeaf": "templateFieldLeaf");
 			}
 			else if(scratchNode.args !== undefined)
 			{
 				if(scratchNode.parent.type === 'functionDeclare' && scratchNode.type === 'functionDeclare')
 				{
-					newNode.className = 'functionTemplate';
+					newNode.className += 'functionTemplate';
+				}
+				else if(scratchNode.hasSideEffects)
+				{
+					newNode.className += 'templateFieldAction';
 				}
 				else
 				{
-					newNode.className = 'templateField';
+					newNode.className += 'templateField';
 				}
 
 				newNode.appendChild( document.createTextNode(" ") );
@@ -787,7 +896,7 @@
 			{
 				case "functionDeclare":
 				{	
-					createContextMenu(newNode, [
+					createContextMenu(newNode, scratchNode, [
 						contextMenu_AddParameterDecl(scratchNode),
 						contextMenu_ExpandParameters(scratchNode),
 					]);
@@ -796,7 +905,7 @@
 
 				case "functionParamDeclare":
 				{	
-					createContextMenu(newNode, [
+					createContextMenu(newNode, scratchNode, [
 						contextMenu_AddParameterDecl(scratchNode),
 					]);
 				}
@@ -866,10 +975,11 @@
 			return result;
 		}
 		
-		function createContextMenu(element, items)
+		function createContextMenu(element, scratchNode, items)
 		{
 			var contextMenuSpan = merge(document.createElement("SPAN"),
 			{
+				scratchNode:scratchNode,
 				onclick:function()
 				{
 					showContextMenu(this, items);
@@ -908,6 +1018,17 @@
 									local:true,
 									args:[]
 								}]
+							});
+							displayScratchArea();
+						}
+					},
+					{text:"Typed Value", action:function()
+						{
+							scratchNode.args.push(createEmptyTypeSlot());
+							scratchNode.args.push({
+								type:"varDeclare",
+								name:["arg"+(scratchNode.args.length+1)],
+								local:true,
 							});
 							displayScratchArea();
 						}
@@ -994,8 +1115,12 @@
 					g_draggedOverElement.ondragleave();
 				}
 
-				g_draggedOverElement = this;
-				this.className = className;
+				var scratchArea = document.getElementById("scratch_area");
+				if(hasAncestor(this, scratchArea))
+				{
+					g_draggedOverElement = this;
+					this.className = className;
+				}
 			};
 		}
 
@@ -1061,6 +1186,10 @@
 				case "declareBlockTemplate":
 					result.type = "declareBlock";
 					break;
+				case "typeTemplate":
+					result.type = "type";
+					result.template = node;
+					break;
 				case "varDeclarePlaceholder":
 				case "varDeclare":
 					//is this a parameter in a function declaration, and we're dragging out a function call from it?
@@ -1111,6 +1240,11 @@
 
         function placeDrop(ev)
 		{
+			if(g_draggedOverElement !== undefined)
+			{
+				g_draggedOverElement.ondragleave();
+			}
+			
             if (g_draggingElement === undefined)
 				return;
 
@@ -1149,14 +1283,15 @@
 				
 				switch(targetNode !== undefined ? targetNode.type: "")
 				{
-					// can't drag anything onto templates
 					case "nativeTemplate":
 					case "functionDeclare":
 					case "functionDeclarePlaceholder":
 					case "declareBlockTemplate":
 					case "varDeclarePlaceholder":
+						// can't drag anything onto templates
 						return;
 					case "varDeclare":
+						// reorder variables
 						if(draggingNode.type === "varDeclare" && targetNode.parent === draggingNode.parent)
 						{
 							var draggedArgIdx = getParentArgIndex(draggingNode);
@@ -1187,23 +1322,76 @@
                 }
                 else if (targetNode.parent !== undefined && !isAncestorOfNode(draggingNode, targetNode))
 				{
-                    dragAwayNode(draggingNode);
-
-                    var targetArgIdx = getParentArgIndex(targetNode);
-
-                    var replacedNode = targetNode.parent.args[targetArgIdx];					
-                    targetNode.parent.args[targetArgIdx] = draggingNode;
-
-                    if (replacedNode !== undefined && replacedNode.type !== "literal" && replacedNode.type !== "variableSlot")
+					var oldParent = draggingNode.parent;
+					dragAwayNode(draggingNode);
+					
+					if(targetNode.listArgsFrom !== undefined)
 					{
-                        testDoc.args.push(replacedNode);
-                    }
+						// Append this new item to the list
+						targetNode.args.push(draggingNode);
+						draggingNode.parent = targetNode;
+					}
+					else
+					{
+						targetNode = replaceInParent(targetNode, draggingNode);
+
+						if(targetNode !== undefined && !isSlotNode(targetNode))
+							testDoc.args.push(targetNode);
+					}
+					
 					displayScratchArea();
                 }
 
                 g_draggingElement = undefined;
             }
         }
+		
+		function isSlotNode(node)
+		{
+			switch(node.type)
+			{
+				case "literal":
+				case "variableSlot":
+				case "typeSlot":
+					return true;
+				default:
+					return false;
+			}
+		}
+		
+		function replaceInParent(replacedNode, replacement)
+		{
+			var targetArgIdx = getParentArgIndex(replacedNode);
+			
+			if(targetArgIdx === undefined)
+			{
+				if(replacedNode.parent.argTypes !== undefined)
+				{
+					var index = replacedNode.parent.argTypes.indexOf(replacedNode);
+					if(index !== -1)
+					{
+						replacedNode.parent.argTypes[index] = replacement;
+						replacement.parent = replacedNode.parent;
+					}
+				}
+				return;
+			}
+			
+			var replacedNode = replacedNode.parent.args[targetArgIdx];					
+			replacement.parent = replacedNode.parent;
+			
+			if(replacedNode.parent.listArgsFrom <= targetArgIdx && !isSlotNode(replacedNode))
+			{
+				// adding/reordering something in the list
+				replacedNode.parent.args.splice(targetArgIdx, 0, replacement);
+				return undefined;
+			}
+			else
+			{
+				replacedNode.parent.args[targetArgIdx] = replacement;
+				return replacedNode;
+			}
+		}
 	
         function dragAwayElement(element)
 		{
@@ -1229,7 +1417,7 @@
                 return;
 			
             var draggedArgIdx = getParentArgIndex(node);
-            if (node.parent === testDoc)
+            if (node.parent === testDoc || node.parent.listArgsFrom < draggedArgIdx)
 			{
                 node.parent.args.splice(draggedArgIdx, 1);
             }
@@ -1264,6 +1452,14 @@
 		{
             return {
                 type: "variableSlot",
+                literal: ""
+            };
+        }
+
+		function createEmptyTypeSlot()
+		{
+            return {
+                type: "typeSlot",
                 literal: ""
             };
         }
@@ -1516,7 +1712,7 @@
             cursor: pointer;
         }
 		
-		.nativeNode, .nativeLeaf, .declareBlock, .scopeNode, .valueNode, .commandNode, .mutableNativeNode {
+		.nativeNode, .nativeLeaf, .declareBlock, .scopeNode, .valueNode, .commandNode, .mutableNativeNode, .typeNode {
             border: outset;
 			border-radius:6px;
 			padding-top:0px;
@@ -1568,6 +1764,14 @@
             color: white;
         }
 		
+		.typeNode {
+            border-color: CCFFCC;/*#80EE80;*/
+            background-color: AAFFAA;/*#40EE40;*/
+			border-radius:0px;
+            border-width: 1px;
+			color: #008800;
+		}
+
 		.declareBlock {
             background-color: #554411;
 			border-color: #665544;
@@ -1601,21 +1805,40 @@
 			height:15px;
             display: inline-block;
         }
+
+        .typeSlot {
+            background-color: #44EE44;
+            border: inset;
+            border-width: 1px;
+            border-radius: 2px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            padding-left: 4px;
+            padding-right: 4px;
+			text-align: center;
+			vertical-align: bottom;
+			/*width:20px;
+			height:15px;*/
+            display: inline-block;
+        }
 		
-		.templateField, .templateFieldLeaf, .mutableTemplateFieldLeaf {
-            background-color: #CCCCFF; /*#FFA500;*/
-			border-color: #DDEEFF; /*#FFCC66;*/
+		.templateField, .templateFieldLeaf, .mutableTemplateFieldLeaf, .templateFieldAction {
             border: inset;
             border-width: 1px;
             border-radius: 3px;
             padding-top: 0px;
             padding-bottom: 0px;
-            padding-left: 2px;
-            padding-right: 2px;
 			font-weight: bold;
             display: inline-block;
 			color: #000000;
         }
+		
+		.templateField {
+            background-color: #CCCCFF; /*#FFA500;*/
+			border-color: #DDEEFF; /*#FFCC66;*/
+            padding-left: 2px;
+            padding-right: 2px;
+		}
 		
 		.templateFieldLeaf {
 			border-color: #AACCFF;
@@ -1623,6 +1846,13 @@
             padding-left: 4px;
             padding-right: 4px;
 		}
+		
+		.templateFieldAction {
+            border-color: #FFCC66;
+            background-color: #FFA500;
+            padding-left: 2px;
+            padding-right: 2px;
+        }
 
 		.mutableTemplateFieldLeaf {
             background-color: #FF5500;
@@ -1647,7 +1877,7 @@
 			border-style: inset;
             display: inline-block;
 		}
-
+		
 		#context_menu_layer {
             background-color: transparent;
 			position:absolute;
@@ -1693,6 +1923,11 @@
 		.draggedOverBorder {
 			border: dashed;
 			border-color:red;
+		}
+		
+		.undraggable {
+			border-style: dashed;
+			border-color: white;
 		}
 	</style>
 </head>
